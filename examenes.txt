@@ -1,0 +1,52 @@
+NOMBRE LAB          |NOMBRE CORTO   |CATEGORIA
+                        fecha           
+                        hora
+                        muestra
+                        fio2
+                        PMVA
+pH                      ph            Gases
+pO2                     po2
+pCO2                    pco2
+BICARBONATO (HCO3)	    hco3
+EXCESO DE BASE (BEb)    BE
+SATURACION DE 02 CALCULADA (sO2c)	SatO2
+LACTATO                 lactato
+AMONIO                  amonio
+BUN
+uremia
+creatinina
+Na
+K
+Cl
+iCa
+tCa
+P
+Mg 
+glucosa
+trigliceridos
+cetonemia
+albumina
+GOT
+GPT
+GGT
+falcalinas
+biliT
+biliD
+LDH
+amilasa
+lipasa
+CKtotal
+CKMB
+troponina
+TP 
+INR 
+TTPA
+fibrinogeno
+dimeroD
+hcto
+hb
+leucocitos
+RAN
+plaquetas
+PCR
+procalcitonina 
