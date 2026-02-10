@@ -5,7 +5,7 @@ Docstring para script
 from bs4 import BeautifulSoup as bs
 import pandas as pd
 
-html = open("prueba.html", encoding=None).read()
+html = open("prueba.html", encoding="UTF-8").read()
 soup = bs(html, "html.parser")
 
 resultados = []
@@ -30,4 +30,3 @@ for fila in soup.select("h4.modal-title"):
 # dato2.append(valor)
 
 df = pd.DataFrame(resultados,)
-
