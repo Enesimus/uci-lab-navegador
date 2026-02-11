@@ -1,135 +1,62 @@
 // content.js
-// Normaliza exámenes y los agrupa por fecha + hora (eventos UCI)
 
-// url laboratorio http://10.6.127.136/GestionIntegrada/Clinicos#
+function extraerDesdeDOM() {
 
-(function () {
-    console.log("content.js UCI: normalizacion + eventos");
-
-    // Diccionario mínimo de normalizacion
-    
-    // Funcion para normalizar nombres de examenes
-    function normalizarNombreExamen(texto) {
-        return texto
-        .toUpperCase()
-        .normalize("NFD")                // elimina tildes
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, " ")
-        .replace(/-/g, " ")
-        .trim();
-    }
-    // (Esto despues se movera a exams.js)
-    const MAP_EXAMENES = {
-                "pH": "pH",
-                "pO2": "pO2",
-                "pCO2": "pCO2",
-                "BICARBONATO (HCO3)": "HCO3",
-                "EXCESO DE BASE (BEb)": "BEb",
-                "SATURACION DE 02 CALCULADA (sO2c)": "satO2",
-                "LACTATO": "Lactato",
-                "AMONIO": "Amonio",
-                "SODIO": "Na",
-                "POTASIO":"K",
-                "CLORO": "Cl",
-                "CALCIO IONICO": "iCa",
-                "FOSFORO": "P",
-                "MAGNESIO":"Mg",
-                "GLUCOSA": "Glucosa",
-                "BUN": "BUN",
-                "CREATININA": "Creat",
-                "BILIRRUBINA DIRECTA":"BD",
-                "BILIRRUBINA TOTAL":"BT",
-                "FOSFATASA ALCALINA":"FA",
-                "GOT":"GOT",
-                "GPT":"GPT",
-                "TRIGLICERIDOS":"Trigl",
-                "ALBUMINA":"Albumina",
-                "LDH":"LDH",
-                "AMILASA":"Amilasa",
-                "LIPASA":"Lipasa",
-                "CK TOTAL":"CK Total",
-                "CK MB":"CK MB",
-                "TROPONINA": "Troponina",
-                "TP PORCENTAJE": "TP %",
-                "INR": "INR",
-                "TIEMPO DE TROMBOPLASTINA PARCIAL ACTIVADO (TTPA)": "TTPA",
-                "FIBRINOGENO":"Fibrinogeno",
-                "DIMERO-D":"Dimero D",
-                "HEMATOCRITO": "Hcto",
-                "HEMOGLOBINA": "Hb",
-                "LEUCOCITOS": "Leucocitos",
-                "NEUTROFILOS": "RAN",
-                "LINFOCITOS": "RAL",
-                "GRANULOCITOS INMADUROS %": "% inmaduros",
-                "PLAQUETAS": "Plaquetas",
-                "PROTEINA C REACTIVA": "PCR",
-                "PROCALCITONINA":"PCT"
-                };
-    
-    // Normalizar diccionario
-    const MAP_EXAMENES_NORMALIZADO = {};
-
-    Object.entries(MAP_EXAMENES).forEach(([key, value]) => {
-        MAP_EXAMENES_NORMALIZADO[normalizarNombreExamen(key)] = value;
-    });
-    
-    // Extraer datos del paciente
-    function extraerDatosPaciente() {
-        const card = document.querySelector("#DatosDemograficos");
-        if (!card) return null;
-
-        const celdas = card.querySelectorAll("td");
-
-        let datos = {
-            rut: null,
-            nombre: null
-        };
-
-        for (let i = 0; i < celdas.length; i++) {
-            const label = celdas[i].previousElementSibling?.innerText.trim();
-
-            if (label === "Rut Paciente") {
-                datos.rut = celdas[i].innerText.trim();
-                }
-
-            if (label === "Nombres") {
-                const nombres = celdas[i].innerText.trim();
-                const apellidoP = celdas[i + 2]?.innerText.trim();
-                const apellidoM = celdas[i + 4]?.innerText.trim();
-
-                datos.nombre = `${nombres} ${apellidoP} ${apellidoM}`.trim();
-                }
-        }
-
-        return datos;
+    // -----------------------------
+    // 1️. Extraer datos del paciente
+    // -----------------------------
+    const card = document.querySelector("#DatosDemograficos");
+    if (!card) {
+        console.warn("No se encontró bloque DatosDemograficos");
+        return null;
     }
 
-    // Extraer numero de orden
-    function extraerNumeroOrden() {
-        const titulo = document.querySelector("#ModalMostrarReporte .modal-title");
-        if (!titulo) return null;
+    const celdas = card.querySelectorAll("td");
+    const rut = celdas[0]?.innerText.trim();
+    const nombres = celdas[1]?.innerText.trim();
+    const apellidoPaterno = celdas[3]?.innerText.trim();
+    const apellidoMaterno = celdas[5]?.innerText.trim();
 
-        const texto = titulo.innerText;
-        const match = texto.match(/Orden n°\s*(\d+)/i);
+    const nombreCompleto = [nombres, apellidoPaterno, apellidoMaterno]
+        .filter(Boolean)
+        .join(" ");
 
-        return match ? match[1] : null;
+    const paciente = { rut, nombre: nombreCompleto };
+
+    // -----------------------------
+    // 2️. Extraer número de orden
+    // -----------------------------
+    const tituloModal = document.querySelector("#ModalMostrarReporte .modal-title");
+    if (!tituloModal) {
+        console.warn("No se encontró número de orden");
+        return null;
     }
 
-    // Extraer las filas de resultados
+    const textoTitulo = tituloModal.innerText;
+    const matchOrden = textoTitulo.match(/Orden n°\s*(\d+)/i);
+    const orden = matchOrden ? matchOrden[1] : null;
+
+    if (!orden) {
+        console.warn("No se pudo extraer número de orden");
+        return null;
+    }
+
+    // -----------------------------
+    // 3️. Extraer tabla de resultados
+    // -----------------------------
     const filas = document.querySelectorAll("tr.grid-row");
-
     if (filas.length === 0) {
-        console.warn("No se encontraron resultados de laboratorio");
-        return;
+        console.warn("No se encontraron resultados");
+        return null;
     }
-    
-    let resultados = [];
-    
-    filas.forEach((fila, index) => {
-        let registro = {};
+
+    let registros = [];
+
+    filas.forEach(fila => {
 
         const celdas = fila.querySelectorAll("td.grid-cell");
-        
+        let registro = {};
+
         celdas.forEach(celda => {
             const campo = celda.dataset.name;
             if (!campo) return;
@@ -138,160 +65,50 @@
             registro[campo] = valor;
         });
 
-        // Solo agregar si tiene al menos prueba y fecha de validacion
-        if (registro.Prueba && registro.FechaValidacion) {
-            resultados.push(registro);
-        };
-    });
+        if (!registro.Prueba || !registro.Resultado || !registro.FechaValidacion)
+            return;
 
-    console.log("Resultados extraidos:", resultados);
+        // -----------------------------
+        // 4️. Normalización
+        // -----------------------------
+        const nombreNormalizado = normalizarNombre(registro.Prueba);
+        const fechaNormalizada = normalizarFecha(registro.FechaValidacion);
 
-    // Funcion para normalizar fecha/hora
-    function normalizarFechaHora(texto) {
-        // Esperado : "08-02-2026 08:15"
-        const partes = texto.split(" ");
-        if (partes.length <2) return null;
+        let valor = registro.Resultado.replace(",", ".");
+        valor = isNaN(valor) ? valor : Number(valor);
 
-        const [d, m, y] = partes[0].split("-");
-        const hora = partes[1];
-        return `${y}-${m}-${d} ${hora}`; // formato ISO para ordenar
-    };
-
-    // Agrupar por evento (fecha + hora)
-    let eventos = {};
-
-    resultados.forEach(registro => {
-        const evento = normalizarFechaHora(registro.FechaValidacion);
-        if (!evento) return;
-
-        // const nombreRaw = registro.Prueba;
-        // const examen = MAP_EXAMENES[nombreRaw] || nombreRaw;
-
-        const nombreRaw = normalizarNombreExamen(registro.Prueba);
-        const examen = MAP_EXAMENES_NORMALIZADO[nombreRaw] || registro.Prueba;
-
-        if (!eventos[evento]) {
-            eventos[evento] = {};
-        }
-
-        eventos[evento][examen] = registro.Resultado || null;
-    });
-
-    // Ordenar cronologicamente los eventos
-    const eventosOrdenados = Object.keys(eventos)
-        .sort()
-        .reduce((acc,key)=> {
-            acc[key] = eventos[key];
-            return acc;
-        },{});
-
-    console.log("Eventos UCI (agrupados y ordenados):", eventosOrdenados);
-
-    // Extraccion estructurada
-    const paciente = extraerDatosPaciente();
-    const orden = extraerNumeroOrden();
-
-    const contexto = {
-        paciente: {
-            rut: paciente.rut,
-            nombre: paciente.nombre
-            },
-        orden: orden,
-        eventos: eventosOrdenados
-    };
-
-    console.log("Contexto clínico completo:", contexto);
-
-    // Guardamos los datos en window para que otros script los usen después
-    // window.__UCI_EVENTOS__ = contexto;
-
-    function guardarEventosEnLocalStorage(eventosNuevos) {
-
-        const clave = `UCI_EVENTOS_${paciente.rut}`;
-
-
-        // Obtener acumulado actual
-        let acumulado = JSON.parse(localStorage.getItem(clave) || "{}");
-
-        // Fusionar sin borrar anteriores
-        Object.assign(acumulado, eventosNuevos);
-
-        // Guardar nuevamente
-        localStorage.setItem(clave, JSON.stringify(acumulado));
-
-        console.log("Eventos acumulados:", acumulado);
-    }
-
-    guardarEventosEnLocalStorage(contexto);
-    console.log(`${resultados.length} exámenes cargados en localStorage`);
-})();
-
-// Obtener eventos guardados
-function obtenerEventosGuardados() {
-    return JSON.parse(localStorage.getItem("UCI_EVENTOS") || "{}");
-}
-
-const eventos = obtenerEventosGuardados();
-const matrizClinica = construirMatrizClinica(eventos);
-
-console.log("Matriz clínica:", matrizClinica);
-
-// Borrar entre pacientes
-function limpiarEventos() {
-    localStorage.removeItem("UCI_EVENTOS");
-    console.log("Eventos UCI eliminados");
-}
-
-limpiarEventos();
-
-// Construir matriz clinica
-function construirMatrizClinica(eventos) {
-
-    // Ordenar columnas cronológicamente
-    const columnas = Object.keys(eventos).sort();
-
-    // Detectar todos los exámenes presentes
-    const examenesDetectados = new Set();
-
-    columnas.forEach(fecha => {
-        Object.keys(eventos[fecha]).forEach(examen => {
-            examenesDetectados.add(examen);
-        });
-    });
-
-    // Construir lista mixta (fijos + dinámicos)
-    const filas = [...EXAMENES_FIJOS];
-
-    examenesDetectados.forEach(examen => {
-        if (!filas.includes(examen)) {
-            filas.push(examen);
-        }
-    });
-
-    // Construir matriz vacía
-    const matriz = {};
-
-    filas.forEach(examen => {
-        matriz[examen] = {};
-        columnas.forEach(fecha => {
-            matriz[examen][fecha] = null;
-        });
-    });
-
-    // Llenar valores reales
-    columnas.forEach(fecha => {
-        Object.entries(eventos[fecha]).forEach(([examen, valor]) => {
-
-            // convertir a número si corresponde
-            const valorNumerico = isNaN(valor) ? valor : Number(valor);
-
-            matriz[examen][fecha] = valorNumerico;
+        registros.push({
+            fechaValidacion: fechaNormalizada,
+            examen: nombreNormalizado,
+            valor: valor,
+            unidad: registro.Unidad || "",
+            referencia: registro.ValorReferencia || ""
         });
     });
 
     return {
-        columnas,
-        filas,
-        matriz
+        paciente,
+        orden,
+        registros
     };
 }
+
+const contexto = extraerDesdeDOM();
+if (contexto) guardar(contexto);
+
+
+// 5. Escuchar mensajes
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+
+    if (request.action === "extraerOrden") {
+
+        const contexto = extraerDesdeDOM();
+
+        if (!contexto) {
+            sendResponse({ ok: false, mensaje: "No se pudo extraer la orden" });
+            return;
+        }
+
+        sendResponse({ ok: true, contexto: contexto });
+    }
+});
