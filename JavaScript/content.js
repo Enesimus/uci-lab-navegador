@@ -7,55 +7,113 @@
     console.log("content.js UCI: normalizacion + eventos");
 
     // Diccionario mínimo de normalizacion
+    
+    // Funcion para normalizar nombres de examenes
+    function normalizarNombreExamen(texto) {
+        return texto
+        .toUpperCase()
+        .normalize("NFD")                // elimina tildes
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .replace(/-/g, " ")
+        .trim();
+    }
     // (Esto despues se movera a exams.js)
-
     const MAP_EXAMENES = {
-"pH": "pH",
-"pO2": "pO2",
-"pCO2": "pCO2",
-"BICARBONATO (HCO3)": "HCO3",
-"EXCESO DE BASE (BEb)": "BEb",
-"SATURACION DE 02 CALCULADA (sO2c)": "satO2",
-"LACTATO": "Lactato",
-"AMONIO": "Amonio",
-"SODIO": "Na",
-"POTASIO":"K",
-"CLORO": "Cl",
-"CALCIO IONICO": "iCa",
-"FOSFORO": "P",
-"MAGNESIO":"Mg",
-"GLUCOSA": "Glucosa",
-"BUN": "BUN",
-"CREATININA": "Creat",
-"BILIRRUBINA DIRECTA":"",
-"BILIRRUBINA TOTAL":"",
-"FOSFATASA ALCALINA":"",
-"GOT":"GOT",
-"GPT":"GPT",
-"TRIGLICERIDOS":"Trigl",
-"ALBUMINA":"Albumina",
-"LDH":"LDH",
-"AMILASA":"Amilasa",
-"LIPASA":"Lipasa",
-"CK TOTAL":"CK Total",
-"CK MB":"CK MB",
-"TROPONINA": "Troponina",
-"TP PORCENTAJE": "TP %",
-"INR": "INR",
-"TIEMPO DE TROMBOPLASTINA PARCIAL ACTIVADO (TTPA)": "TTPA",
-"FIBRINOGENO":"Fibrinogeno",
-"DIMERO-D":"Dimero D",
-"HEMATOCRITO": "Hcto",
-"HEMOGLOBINA": "Hb",
-"LEUCOCITOS": "Leucocitos",
-"NEUTROFILOS": "RAN",
-"LINFOCITOS": "RAL",
-"GRANULOCITOS INMADUROS %": "% inmaduros",
-"PLAQUETAS": "Plaquetas",
-"PROTEINA C REACTIVA": "PCR",
-"PROCALCITONINA":"PCT"
-};
+                "pH": "pH",
+                "pO2": "pO2",
+                "pCO2": "pCO2",
+                "BICARBONATO (HCO3)": "HCO3",
+                "EXCESO DE BASE (BEb)": "BEb",
+                "SATURACION DE 02 CALCULADA (sO2c)": "satO2",
+                "LACTATO": "Lactato",
+                "AMONIO": "Amonio",
+                "SODIO": "Na",
+                "POTASIO":"K",
+                "CLORO": "Cl",
+                "CALCIO IONICO": "iCa",
+                "FOSFORO": "P",
+                "MAGNESIO":"Mg",
+                "GLUCOSA": "Glucosa",
+                "BUN": "BUN",
+                "CREATININA": "Creat",
+                "BILIRRUBINA DIRECTA":"BD",
+                "BILIRRUBINA TOTAL":"BT",
+                "FOSFATASA ALCALINA":"FA",
+                "GOT":"GOT",
+                "GPT":"GPT",
+                "TRIGLICERIDOS":"Trigl",
+                "ALBUMINA":"Albumina",
+                "LDH":"LDH",
+                "AMILASA":"Amilasa",
+                "LIPASA":"Lipasa",
+                "CK TOTAL":"CK Total",
+                "CK MB":"CK MB",
+                "TROPONINA": "Troponina",
+                "TP PORCENTAJE": "TP %",
+                "INR": "INR",
+                "TIEMPO DE TROMBOPLASTINA PARCIAL ACTIVADO (TTPA)": "TTPA",
+                "FIBRINOGENO":"Fibrinogeno",
+                "DIMERO-D":"Dimero D",
+                "HEMATOCRITO": "Hcto",
+                "HEMOGLOBINA": "Hb",
+                "LEUCOCITOS": "Leucocitos",
+                "NEUTROFILOS": "RAN",
+                "LINFOCITOS": "RAL",
+                "GRANULOCITOS INMADUROS %": "% inmaduros",
+                "PLAQUETAS": "Plaquetas",
+                "PROTEINA C REACTIVA": "PCR",
+                "PROCALCITONINA":"PCT"
+                };
+    
+    // Normalizar diccionario
+    const MAP_EXAMENES_NORMALIZADO = {};
 
+    Object.entries(MAP_EXAMENES).forEach(([key, value]) => {
+        MAP_EXAMENES_NORMALIZADO[normalizarNombreExamen(key)] = value;
+    });
+    
+    // Extraer datos del paciente
+    function extraerDatosPaciente() {
+        const card = document.querySelector("#DatosDemograficos");
+        if (!card) return null;
+
+        const celdas = card.querySelectorAll("td");
+
+        let datos = {
+            rut: null,
+            nombre: null
+        };
+
+        for (let i = 0; i < celdas.length; i++) {
+            const label = celdas[i].previousElementSibling?.innerText.trim();
+
+            if (label === "Rut Paciente") {
+                datos.rut = celdas[i].innerText.trim();
+                }
+
+            if (label === "Nombres") {
+                const nombres = celdas[i].innerText.trim();
+                const apellidoP = celdas[i + 2]?.innerText.trim();
+                const apellidoM = celdas[i + 4]?.innerText.trim();
+
+                datos.nombre = `${nombres} ${apellidoP} ${apellidoM}`.trim();
+                }
+        }
+
+        return datos;
+    }
+
+    // Extraer numero de orden
+    function extraerNumeroOrden() {
+        const titulo = document.querySelector("#ModalMostrarReporte .modal-title");
+        if (!titulo) return null;
+
+        const texto = titulo.innerText;
+        const match = texto.match(/Orden n°\s*(\d+)/i);
+
+        return match ? match[1] : null;
+    }
 
     // Extraer las filas de resultados
     const filas = document.querySelectorAll("tr.grid-row");
@@ -80,8 +138,8 @@
             registro[campo] = valor;
         });
 
-        // Solo agregar si tiene al menos prueba, resultado y fecha de validacion
-        if (registro.Prueba && registro.Resultado && registro.FechaValidacion) {
+        // Solo agregar si tiene al menos prueba y fecha de validacion
+        if (registro.Prueba && registro.FechaValidacion) {
             resultados.push(registro);
         };
     });
@@ -91,7 +149,6 @@
     // Funcion para normalizar fecha/hora
     function normalizarFechaHora(texto) {
         // Esperado : "08-02-2026 08:15"
-        txt = texto;
         const partes = texto.split(" ");
         if (partes.length <2) return null;
 
@@ -107,14 +164,17 @@
         const evento = normalizarFechaHora(registro.FechaValidacion);
         if (!evento) return;
 
-        const nombreRaw = registro.Prueba.toUpperCase();
-        const examen = MAP_EXAMENES[nombreRaw] || nombreRaw;
+        // const nombreRaw = registro.Prueba;
+        // const examen = MAP_EXAMENES[nombreRaw] || nombreRaw;
+
+        const nombreRaw = normalizarNombreExamen(registro.Prueba);
+        const examen = MAP_EXAMENES_NORMALIZADO[nombreRaw] || registro.Prueba;
 
         if (!eventos[evento]) {
             eventos[evento] = {};
         }
 
-        eventos[evento][examen] = resultados.registro;
+        eventos[evento][examen] = registro.Resultado || null;
     });
 
     // Ordenar cronologicamente los eventos
@@ -127,9 +187,111 @@
 
     console.log("Eventos UCI (agrupados y ordenados):", eventosOrdenados);
 
+    // Extraccion estructurada
+    const paciente = extraerDatosPaciente();
+    const orden = extraerNumeroOrden();
+
+    const contexto = {
+        paciente: {
+            rut: paciente.rut,
+            nombre: paciente.nombre
+            },
+        orden: orden,
+        eventos: eventosOrdenados
+    };
+
+    console.log("Contexto clínico completo:", contexto);
 
     // Guardamos los datos en window para que otros script los usen después
-    window.__UCI_EVENTOS__ = eventosOrdenados;
+    // window.__UCI_EVENTOS__ = contexto;
 
-    console.log(`${resultados.length} exámenes cargados en window.__UCI_EVENTOS__`);
+    function guardarEventosEnLocalStorage(eventosNuevos) {
+
+        const clave = `UCI_EVENTOS_${paciente.rut}`;
+
+
+        // Obtener acumulado actual
+        let acumulado = JSON.parse(localStorage.getItem(clave) || "{}");
+
+        // Fusionar sin borrar anteriores
+        Object.assign(acumulado, eventosNuevos);
+
+        // Guardar nuevamente
+        localStorage.setItem(clave, JSON.stringify(acumulado));
+
+        console.log("Eventos acumulados:", acumulado);
+    }
+
+    guardarEventosEnLocalStorage(contexto);
+    console.log(`${resultados.length} exámenes cargados en localStorage`);
 })();
+
+// Obtener eventos guardados
+function obtenerEventosGuardados() {
+    return JSON.parse(localStorage.getItem("UCI_EVENTOS") || "{}");
+}
+
+const eventos = obtenerEventosGuardados();
+const matrizClinica = construirMatrizClinica(eventos);
+
+console.log("Matriz clínica:", matrizClinica);
+
+// Borrar entre pacientes
+function limpiarEventos() {
+    localStorage.removeItem("UCI_EVENTOS");
+    console.log("Eventos UCI eliminados");
+}
+
+limpiarEventos();
+
+// Construir matriz clinica
+function construirMatrizClinica(eventos) {
+
+    // Ordenar columnas cronológicamente
+    const columnas = Object.keys(eventos).sort();
+
+    // Detectar todos los exámenes presentes
+    const examenesDetectados = new Set();
+
+    columnas.forEach(fecha => {
+        Object.keys(eventos[fecha]).forEach(examen => {
+            examenesDetectados.add(examen);
+        });
+    });
+
+    // Construir lista mixta (fijos + dinámicos)
+    const filas = [...EXAMENES_FIJOS];
+
+    examenesDetectados.forEach(examen => {
+        if (!filas.includes(examen)) {
+            filas.push(examen);
+        }
+    });
+
+    // Construir matriz vacía
+    const matriz = {};
+
+    filas.forEach(examen => {
+        matriz[examen] = {};
+        columnas.forEach(fecha => {
+            matriz[examen][fecha] = null;
+        });
+    });
+
+    // Llenar valores reales
+    columnas.forEach(fecha => {
+        Object.entries(eventos[fecha]).forEach(([examen, valor]) => {
+
+            // convertir a número si corresponde
+            const valorNumerico = isNaN(valor) ? valor : Number(valor);
+
+            matriz[examen][fecha] = valorNumerico;
+        });
+    });
+
+    return {
+        columnas,
+        filas,
+        matriz
+    };
+}
