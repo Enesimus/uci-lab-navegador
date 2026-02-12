@@ -71,3 +71,49 @@ function descargarCSV(nombreArchivo, contenidoCSV) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+function exportarPacienteCSV(rut) {
+
+    const data = obtenerPaciente(rut);
+    if (!data) {
+        alert("No hay datos para este paciente");
+        return;
+    }
+
+    const matrizClinica = construirMatrizClinica(rut);
+    const matriz = convertirAMatrizBidimensional(matrizClinica);
+
+    if (!matriz) {
+        alert("No se pudo construir la matriz");
+        return;
+    }
+
+    const { paciente, ordenes } = data;
+
+    // ===== 1️⃣ Metadatos =====
+    const ahora = new Date();
+    const fechaExport =
+        ahora.getFullYear() + "-" +
+        String(ahora.getMonth() + 1).padStart(2, "0") + "-" +
+        String(ahora.getDate()).padStart(2, "0") + " " +
+        String(ahora.getHours()).padStart(2, "0") + ":" +
+        String(ahora.getMinutes()).padStart(2, "0");
+
+    const meta = [
+        ["Paciente", paciente.nombre],
+        ["RUT", paciente.rut],
+        ["Fecha exportación", fechaExport],
+        ["Total órdenes", Object.keys(ordenes).length],
+        []
+    ];
+
+    // ===== 2️⃣ Convertir todo a matriz completa =====
+    const matrizCompleta = [
+        ...meta,
+        ...matriz
+    ];
+
+    const contenidoCSV = generarCSV(matrizCompleta);
+
+    descargarCSV(`UCI_${paciente.rut}.csv`, contenidoCSV);
+}

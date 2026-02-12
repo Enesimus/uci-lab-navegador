@@ -33,3 +33,5 @@ const csv = generarCSV(matriz);
 const nombreArchivo = `UCI_${datos.paciente.rut}_${Date.now()}.csv`;
 
 descargarCSV(nombreArchivo, csv);
+
+exportarPacienteCSV(rutActivo);
