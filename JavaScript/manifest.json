@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "UCI Lab Extractor",
+  "version": "1.0",
+  "description": "Extracción y estructuración longitudinal de exámenes UCI",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "UCI Extractor"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://*/*"],
+      "js": ["exams.js", "storage.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

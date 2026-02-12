@@ -93,9 +93,8 @@ function extraerDesdeDOM() {
     };
 }
 
-const contexto = extraerDesdeDOM();
-if (contexto) guardar(contexto);
-
+//const contexto = extraerDesdeDOM();
+//if (contexto) guardar(contexto);
 
 // 5. Escuchar mensajes
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

@@ -1,0 +1,19 @@
+ESTADO
+- SOLICITADO --> orden creada, en espera de llegada de muestra a laboratorio, resultado pendiente
+- RECEPCIONADO --> examen en proceso, resultado pendiente
+- "" --> probable resultado rechazado
+- DISPONIBLE --> implica resultado validado
+- SIN REACTIVO --> resultado rechazado
+
+RESULTADO
+Válidos
+- Cualquier numero
+- Negativo
+- Positivo
+- Reactivo
+- No Reactivo
+- Detectado
+- No Detectado
+No Válidos
+- Pendiente
+- Rechazado

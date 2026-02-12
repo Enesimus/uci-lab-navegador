@@ -1,60 +1,115 @@
-function construirMatrizPorFechaExacta(datos) {
-    
+function esResultadoValido(r) {
+
+    if (!r) return false;
+
+    const estado = (r.Estado || "").trim().toUpperCase();
+    const resultado = (r.Resultado || "").trim().toUpperCase();
+
+    // Debe estar validado oficialmente
+    if (estado !== "DISPONIBLE") return false;
+
+    // Resultados no válidos explícitos
+    if (resultado === "PENDIENTE") return false;
+    if (resultado === "RECHAZADO") return false;
+    if (resultado === "") return false;
+
+    return true;
 }
 
-function construirMatrizPorOrden(datos) {
+function construirMatrizClinica(rut) {
 
-}
+    const data = obtener(rut);
+    if (!data || !data.ordenes) return null;
 
+    const paciente = data.paciente;
 
-// Construir matriz clinica
-function construirMatrizClinica(eventos) {
+    // ===== 1️⃣ Construir columnas desde órdenes =====
+    const columnas = Object.entries(data.ordenes)
+        .map(([orden, contenido]) => {
 
-    // Ordenar columnas cronológicamente
-    const columnas = Object.keys(eventos).sort();
+            const registrosValidos = contenido.registros
+                .filter(r => esResultadoValido(r));
 
-    // Detectar todos los exámenes presentes
-    const examenesDetectados = new Set();
+            if (!registrosValidos.length) return null;
 
-    columnas.forEach(fecha => {
-        Object.keys(eventos[fecha]).forEach(examen => {
-            examenesDetectados.add(examen);
+            const fechas = registrosValidos
+                .map(r => normalizarFecha(r.FechaValidacion))
+                .filter(f => f)
+                .sort();
+
+            if (!fechas.length) return null;
+
+            return {
+                orden,
+                timestamp: fechas[0], // mínima fecha validada
+                registros: registrosValidos
+            };
+        })
+        .filter(c => c !== null);
+
+    // ===== 2️⃣ Ordenar cronológicamente + secundario por número =====
+    columnas.sort((a, b) => {
+
+        const fA = new Date(a.timestamp);
+        const fB = new Date(b.timestamp);
+
+        if (fA < fB) return -1;
+        if (fA > fB) return 1;
+
+        return a.orden.localeCompare(b.orden, undefined, { numeric: true });
+    });
+
+    // ===== 3️⃣ Crear filas base (orden fijo MAP) =====
+    const ordenBaseFilas = Object.values(MAP_EXAMENES);
+    const filas = {};
+    const examenesExtra = new Set();
+
+    ordenBaseFilas.forEach(ex => {
+        filas[ex] = {};
+    });
+
+    // ===== 4️⃣ Rellenar matriz =====
+    columnas.forEach(col => {
+
+        const timestamp = col.timestamp;
+
+        col.registros.forEach(r => {
+
+            let examen = normalizarNombre(r.Prueba);
+
+            // Diferenciación gases arteriales / venosos
+            const estudio = (r.Estudio || "").toUpperCase();
+
+            if (estudio.includes("ARTERIAL")) {
+                examen += "_A";
+            }
+            else if (estudio.includes("VENOS")) {
+                examen += "_V";
+            }
+
+            if (!filas[examen]) {
+                examenesExtra.add(examen);
+                filas[examen] = {};
+            }
+
+            filas[examen][timestamp] = r.Resultado;
         });
     });
 
-    // Construir lista mixta (fijos + dinámicos)
-    const filas = [...EXAMENES_FIJOS];
+    // ===== 5️⃣ Orden final de filas (fijo + extras) =====
+    const ordenFinalFilas = [
+        ...ordenBaseFilas,
+        ...Array.from(examenesExtra)
+    ];
 
-    examenesDetectados.forEach(examen => {
-        if (!filas.includes(examen)) {
-            filas.push(examen);
-        }
-    });
-
-    // Construir matriz vacía
-    const matriz = {};
-
-    filas.forEach(examen => {
-        matriz[examen] = {};
-        columnas.forEach(fecha => {
-            matriz[examen][fecha] = null;
-        });
-    });
-
-    // Llenar valores reales
-    columnas.forEach(fecha => {
-        Object.entries(eventos[fecha]).forEach(([examen, valor]) => {
-
-            // convertir a número si corresponde
-            const valorNumerico = isNaN(valor) ? valor : Number(valor);
-
-            matriz[examen][fecha] = valorNumerico;
-        });
-    });
-
+    // ===== 6️⃣ Retorno estructurado =====
     return {
-        columnas,
+        paciente,
+        columnas: columnas.map(c => ({
+            orden: c.orden,
+            timestamp: c.timestamp
+        })),
         filas,
-        matriz
+        ordenFilas: ordenFinalFilas
     };
 }

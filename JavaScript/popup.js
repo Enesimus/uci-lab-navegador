@@ -22,3 +22,14 @@ document.getElementById("btnExtraer").addEventListener("click", () => {
         );
     });
 });
+
+const datos = obtenerPacienteActual(); // desde storage.js
+
+const matrizClinica = construirMatrizClinica(datos);
+const matriz = convertirAMatrizBidimensional(matrizClinica);
+
+const csv = generarCSV(matriz);
+
+const nombreArchivo = `UCI_${datos.paciente.rut}_${Date.now()}.csv`;
+
+descargarCSV(nombreArchivo, csv);
