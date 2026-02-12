@@ -74,7 +74,7 @@ function descargarCSV(nombreArchivo, contenidoCSV) {
 
 function exportarPacienteCSV(rut) {
 
-    const data = obtenerPaciente(rut);
+    const data = obtener(rut);
     if (!data) {
         alert("No hay datos para este paciente");
         return;

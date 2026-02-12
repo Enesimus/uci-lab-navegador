@@ -1,3 +1,5 @@
+const KEY_RUT_ACTUAL = "UCI_RUT_ACTUAL";
+
 document.getElementById("btnExtraer").addEventListener("click", () => {
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -17,21 +19,36 @@ document.getElementById("btnExtraer").addEventListener("click", () => {
                 // Aquí llamamos a guardar()
                 guardar(contexto);
 
+                // Guardar rut “actual” para el botón Exportar
+                if (contexto?.paciente?.rut) {
+                    localStorage.setItem(KEY_RUT_ACTUAL, contexto.paciente.rut);
+                }
+
                 alert("Orden guardada correctamente");
             }
         );
     });
 });
 
-const datos = obtenerPacienteActual(); // desde storage.js
+document.getElementById("btnExportar").addEventListener("click", () => {
+  // Intentar usar el último rut guardado
+  let rut = localStorage.getItem(KEY_RUT_ACTUAL);
 
-const matrizClinica = construirMatrizClinica(datos);
-const matriz = convertirAMatrizBidimensional(matrizClinica);
+  // Si no hay, pedirlo
+  if (!rut) {
+    rut = prompt("Ingrese RUT del paciente (ej: 28364311-5):");
+    if (!rut) return;
+    localStorage.setItem(KEY_RUT_ACTUAL, rut);
+  }
 
-const csv = generarCSV(matriz);
+  // Llama a tu función en export.js
+  exportarPacienteCSV(rut);
+});
 
-const nombreArchivo = `UCI_${datos.paciente.rut}_${Date.now()}.csv`;
-
-descargarCSV(nombreArchivo, csv);
-
-exportarPacienteCSV(rutActivo);
+//const datos = obtenerPacienteActual(); // desde storage.js
+//const matrizClinica = construirMatrizClinica(datos);
+//const matriz = convertirAMatrizBidimensional(matrizClinica);
+//const csv = generarCSV(matriz);
+//const nombreArchivo = `UCI_${datos.paciente.rut}_${Date.now()}.csv`;
+//descargarCSV(nombreArchivo, csv);
+//exportarPacienteCSV(rutActivo);

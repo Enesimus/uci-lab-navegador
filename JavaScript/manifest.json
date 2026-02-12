@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "matches": ["https://*/*", "http://*/*"],
-      "js": ["exams.js", "storage.js", "content.js"],
+      "js": ["exams.js", "storage.js", "matrix.js" ,"content.js"],
       "run_at": "document_idle"
     }
   ]
