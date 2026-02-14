@@ -4,7 +4,7 @@ function obtenerClavePaciente(rut) {
     return `UCI_${rut}`;
 }
 
-function guardar(contexto) {
+/* function guardar(contexto) {
     const { paciente, orden, registros } = contexto;
 
     if (!paciente?.rut || !orden) {
@@ -35,10 +35,63 @@ function guardar(contexto) {
         registros: registros
     };
 
-    localStorage.setItem(clave, JSON.stringify(data));
+    localStorage.setItem(clave, JSON.stringify(data)); 
 
     console.log(`Orden ${orden} guardada correctamente`);
+}*/
+
+function guardar(contexto) {
+  const { paciente, orden, registros } = contexto;
+
+  if (!paciente?.rut || !orden) {
+    console.warn("Datos incompletos para guardar");
+    return;
+  }
+
+  if (!registros?.length) {
+    console.warn("Orden sin registros");
+    return;
+  }
+
+  const clave = obtenerClavePaciente(paciente.rut);
+
+  let data = JSON.parse(localStorage.getItem(clave) || "null");
+
+  if (!data) {
+    data = { paciente, ordenes: {} };
+  }
+
+  //  1) calcular “timestamp” representativo de esta extracción (mínima fechaValidacion)
+  const fechas = registros
+    .map(r => r.fechaValidacion)
+    .filter(Boolean)
+    .sort();
+
+  const ts = fechas[0] || new Date().toISOString();
+
+  const registrosNormalizados = (registros || []).map(r => ({...r,
+  fechaValidacion: r.fechaValidacion || ts}));
+
+  //  2) clave única por extracción
+  const claveOrden = `${orden}__${ts}`;
+
+  // Guardar sin pisar otras extracciones
+
+  data.ordenes[claveOrden] = {
+    ordenOriginal: orden,
+    timestamp: ts,
+    fechaExtraccion: new Date().toISOString(),
+    registros: registrosNormalizados
+    };
+
+  // Mantener paciente actualizado (por si corrige nombre después)
+  data.paciente = paciente;
+
+  localStorage.setItem(clave, JSON.stringify(data));
+
+  console.log(`Orden ${orden} (${ts}) guardada correctamente`);
 }
+
 
 function obtener(rut) {
     const clave = obtenerClavePaciente(rut);

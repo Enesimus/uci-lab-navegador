@@ -32,11 +32,16 @@ function construirMatrizClinica(rut) {
 
       // Timestamp principal de la orden = fechaValidación mínima
       // (viene como "YYYY-MM-DD HH:MM(:SS)" desde normalizarFecha en exams.js)
-      const fechas = registrosValidos
+      let fechas = registrosValidos
         .map(r => r.fechaValidacion || normalizarFecha(r.FechaValidacion))
         .filter(Boolean)
         .sort();
 
+      if (!fechas.length) {
+        const fallback = contenido.timestamp || contenido.fechaExtraccion;
+        if (fallback) fechas = [fallback];
+      }
+      
       if (!fechas.length) return null;
 
       return {

@@ -13,9 +13,9 @@ function extraerDesdeDOM() {
 
     const celdas = card.querySelectorAll("td");
     const rut = celdas[0]?.innerText.trim();
-    const nombres = celdas[1]?.innerText.trim();
-    const apellidoPaterno = celdas[3]?.innerText.trim();
-    const apellidoMaterno = celdas[5]?.innerText.trim();
+    const nombres = celdas[2]?.innerText.trim();
+    const apellidoPaterno = celdas[4]?.innerText.trim();
+    const apellidoMaterno = celdas[6]?.innerText.trim();
 
     const nombreCompleto = [nombres, apellidoPaterno, apellidoMaterno]
         .filter(Boolean)
