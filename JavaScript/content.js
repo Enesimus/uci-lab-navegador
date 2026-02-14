@@ -44,70 +44,83 @@ function extraerDesdeDOM() {
     // -----------------------------
     // 3️. Extraer tabla de resultados
     // -----------------------------
-    const filas = document.querySelectorAll("tr.grid-row");
-    if (filas.length === 0) {
-        console.warn("No se encontraron resultados");
+
+    function pickResultsTable() {
+        const tables = Array.from(document.querySelectorAll("table"));
+        for (const t of tables) {
+            const headers = Array.from(t.querySelectorAll("thead th")).map(x => x.innerText.trim());
+            const has = (s) => headers.includes(s);
+            if (has("Prueba") && has("Resultado") && has("Fecha Validación")) return t;
+        }
         return null;
     }
 
-    let registros = [];
+    function headerIndexMap(table) {
+        const headers = Array.from(table.querySelectorAll("thead th")).map(x => x.innerText.trim());
+        const map = {};
+        headers.forEach((h, i) => map[h] = i);
+        return map;
+    }
 
-    filas.forEach(fila => {
+    function normalizarFecha(fecha) {
+        if (!fecha) return null;
+        // "13-02-2026 7:36:10" -> "2026-02-13 07:36:10"
+        const m = String(fecha).trim().match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{1,2}:\d{2}:\d{2})$/);
+        if (!m) return String(fecha).trim();
+        const dd = m[1], mm = m[2], yyyy = m[3];
+        const time = m[4].padStart(8, "0"); // si viene "7:36:10" -> "07:36:10"
+        return `${yyyy}-${mm}-${dd} ${time}`;
+    }
 
-        const celdas = fila.querySelectorAll("td.grid-cell");
-        let registro = {};
+    function extraerRegistrosTabla() {
+        const table = pickResultsTable();
+        if (!table) throw new Error("No encontré la tabla de resultados (Prueba/Resultado/Fecha Validación)");
 
-        celdas.forEach(celda => {
-            const campo = celda.dataset.name;
-            if (!campo) return;
+        const idx = headerIndexMap(table);
 
-            const valor = celda.innerText.trim();
-            registro[campo] = valor;
-        });
+        const iPrueba = idx["Prueba"];
+        const iResultado = idx["Resultado"];
+        const iRef = idx["Valor Referencia"];
+        const iFecha = idx["Fecha Validación"];
 
-        if (!registro.Prueba || !registro.Resultado || !registro.FechaValidacion)
-            return;
+        const rows = Array.from(table.querySelectorAll("tbody tr"));
+        const registros = [];
 
-        // -----------------------------
-        // 4️. Normalización
-        // -----------------------------
-        const nombreNormalizado = normalizarNombre(registro.Prueba);
-        const fechaNormalizada = normalizarFecha(registro.FechaValidacion);
+        for (const tr of rows) {
+            const tds = Array.from(tr.querySelectorAll("td"));
+            if (tds.length < 8) continue;
 
-        let valor = registro.Resultado.replace(",", ".");
-        valor = isNaN(valor) ? valor : Number(valor);
+            const examen = tds[iPrueba]?.innerText.trim();
+            const valor = tds[iResultado]?.innerText.trim();
+            const referencia = tds[iRef]?.innerText.trim();
+            const fechaValidacionRaw = tds[iFecha]?.innerText.trim();
 
-        registros.push({
-            fechaValidacion: fechaNormalizada,
-            examen: nombreNormalizado,
-            valor: valor,
-            unidad: registro.Unidad || "",
-            referencia: registro.ValorReferencia || ""
-        });
-    });
+            if (!examen || valor === "") continue;
+    
+            registros.push({
+                examen,
+                valor: isNaN(Number(valor.replace(",", "."))) ? valor : Number(valor.replace(",", ".")),
+                unidad: "", // si existe columna, la mapeamos igual
+                referencia: referencia || "",
+                fechaValidacion: normalizarFecha(fechaValidacionRaw)
+            });
+        }
 
-    return {
-        paciente,
-        orden,
-        registros
-    };
-}
-
-//const contexto = extraerDesdeDOM();
-//if (contexto) guardar(contexto);
-
+        return registros;
+    }
+    
+//----------------------
 // 5. Escuchar mensajes
+//----------------------
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "extraerOrden") {
-
         const contexto = extraerDesdeDOM();
-
         if (!contexto) {
             sendResponse({ ok: false, mensaje: "No se pudo extraer la orden" });
             return;
         }
-
         sendResponse({ ok: true, contexto: contexto });
-    }
-});
+        }
+    });
+};

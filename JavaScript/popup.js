@@ -11,7 +11,7 @@ window.addEventListener("unhandledrejection", (e) => {
 
 function rutValidoBasico(rut) {
   return typeof rut === "string" && rut.includes("-") && rut.length >= 8;
-}
+};
 
 const KEY_RUT_ACTUAL = "UCI_RUT_ACTUAL";
 
@@ -52,8 +52,9 @@ document.getElementById("btnExportar").addEventListener("click", () => {
    let rut = localStorage.getItem(KEY_RUT_ACTUAL);
 
   if (!rutValidoBasico(rut)) {
-    rut = prompt("Ingrese RUT del paciente (ej: 28364311-5):");
-    if (!rut) return;
+    const ingresado = prompt("Ingrese RUT del paciente (ej: 28364311-5):");
+    if (!ingresado) return;
+    rut = ingresado;
     localStorage.setItem(KEY_RUT_ACTUAL, rut);
   }
 
@@ -63,8 +64,4 @@ document.getElementById("btnExportar").addEventListener("click", () => {
     console.error(err);
     alert(`Error exportando: ${err?.message || err}`);
   }
-  
-
-  // Llama a tu función en export.js
-  exportarPacienteCSV(rut);
 });

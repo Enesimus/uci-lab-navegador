@@ -40,6 +40,20 @@ function obtenerClavePaciente(rut) {
     console.log(`Orden ${orden} guardada correctamente`);
 }*/
 
+function firmaRegistros(registros) {
+  return (registros || [])
+    .map(r => `${r.examen}|${r.fechaValidacion}|${r.valor}|${r.unidad}`)
+    .sort()
+    .join(";");
+}
+
+function yaExisteMismaOrden(data, orden, firma) {
+  return Object.values(data.ordenes || {}).some(o =>
+    (o.ordenOriginal === orden) && (o.firma === firma)
+  );
+}
+
+
 function guardar(contexto) {
   const { paciente, orden, registros } = contexto;
 
@@ -72,14 +86,22 @@ function guardar(contexto) {
   const registrosNormalizados = (registros || []).map(r => ({...r,
   fechaValidacion: r.fechaValidacion || ts}));
 
+  const firma = firmaRegistros(registrosNormalizados);
+
+    if (yaExisteMismaOrden(data, orden, firma)) {
+        console.log("Orden duplicada (misma firma), no se guarda:", orden);
+        return;
+    }
+
+
   //  2) clave única por extracción
-  const claveOrden = `${orden}__${ts}`;
+  const claveOrden = `${orden}__${ts}__${Date.now()}`;
 
   // Guardar sin pisar otras extracciones
 
   data.ordenes[claveOrden] = {
     ordenOriginal: orden,
-    timestamp: ts,
+    timestamp: ts, firma,
     fechaExtraccion: new Date().toISOString(),
     registros: registrosNormalizados
     };
