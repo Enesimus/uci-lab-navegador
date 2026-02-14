@@ -76,7 +76,7 @@ function guardar(contexto) {
   }
 
   //  1) calcular “timestamp” representativo de esta extracción (mínima fechaValidacion)
-  const fechas = registros
+  let fechas = registros
     .map(r => r.fechaValidacion)
     .filter(Boolean)
     .sort();

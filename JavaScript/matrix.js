@@ -1,4 +1,5 @@
 // matrix.js
+console.log("matrix.js cargado - build", "2026-02-14 A");
 
 function esResultadoValido(r) {
   if (!r) return false;
@@ -61,10 +62,10 @@ function construirMatrizClinica(rut) {
   return new Date(ts.replace(" ", "T"));
 }
 
-  
   columnas.sort((a, b) => {
-    const fA = parseFechaLocal(a.timestamp);
-    const fB = parseFechaLocal(b.timestamp);
+
+    const fA = new Date(String(a.timestamp).replace(" ", "T"));
+    const fB = new Date(String(b.timestamp).replace(" ", "T"));
 
     if (fA < fB) return -1;
     if (fA > fB) return 1;
@@ -90,7 +91,7 @@ function construirMatrizClinica(rut) {
       let examen = r.examen || normalizarNombre(r.Prueba);
 
       // 2) Diferenciación gases arteriales / venosos (si algún día lo guardamos)
-      const estudio = (r.estudio || r.Estudio || "").toUpperCase();
+      let estudio = (r.estudio || r.Estudio || "").toUpperCase();
       if (estudio.includes("ARTERIAL")) examen += "_A";
       else if (estudio.includes("VENOS")) examen += "_V";
 
