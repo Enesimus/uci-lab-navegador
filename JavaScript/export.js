@@ -73,15 +73,21 @@ function descargarCSV(nombreArchivo, contenidoCSV) {
 }
 
 function exportarPacienteCSV(rut) {
+    console.log("[export] rut:", rut);
 
     const data = obtener(rut);
+    console.log("[export] data:", data);
+
     if (!data) {
         alert("No hay datos para este paciente");
         return;
     }
 
     const matrizClinica = construirMatrizClinica(rut);
+    console.log("[export] matrizClinica:", matrizClinica);
+
     const matriz = convertirAMatrizBidimensional(matrizClinica);
+    console.log("[export] matrizClinicaBidimensional:", matriz);
 
     if (!matriz) {
         alert("No se pudo construir la matriz");

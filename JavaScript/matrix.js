@@ -50,9 +50,16 @@ function construirMatrizClinica(rut) {
   if (!columnas.length) return null;
 
   // ===== 2) Ordenar cronológicamente + secundario por número de orden =====
+  function parseFechaLocal(ts) {
+  if (!ts) return null;
+  // "YYYY-MM-DD HH:MM" -> "YYYY-MM-DDTHH:MM"
+  return new Date(ts.replace(" ", "T"));
+}
+
+  
   columnas.sort((a, b) => {
-    const fA = new Date(a.timestamp);
-    const fB = new Date(b.timestamp);
+    const fA = parseFechaLocal(a.timestamp);
+    const fB = parseFechaLocal(b.timestamp);
 
     if (fA < fB) return -1;
     if (fA > fB) return 1;

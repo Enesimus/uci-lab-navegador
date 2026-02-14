@@ -1,3 +1,18 @@
+// popup.js (arriba de todo)
+window.addEventListener("error", (e) => {
+  console.error("Popup error:", e.error || e.message, e.filename, e.lineno, e.colno);
+  alert(`Error: ${e.message}\n${e.filename}:${e.lineno}:${e.colno}`);
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  console.error("Unhandled rejection:", e.reason);
+  alert(`Promise error: ${String(e.reason)}`);
+});
+
+function rutValidoBasico(rut) {
+  return typeof rut === "string" && rut.includes("-") && rut.length >= 8;
+}
+
 const KEY_RUT_ACTUAL = "UCI_RUT_ACTUAL";
 
 document.getElementById("btnExtraer").addEventListener("click", () => {
@@ -31,15 +46,30 @@ document.getElementById("btnExtraer").addEventListener("click", () => {
 });
 
 document.getElementById("btnExportar").addEventListener("click", () => {
-  // Intentar usar el último rut guardado
-  let rut = localStorage.getItem(KEY_RUT_ACTUAL);
+   let rut = localStorage.getItem(KEY_RUT_ACTUAL);
 
-  // Si no hay, pedirlo
-  if (!rut) {
+  if (!rutValidoBasico(rut)) {
     rut = prompt("Ingrese RUT del paciente (ej: 28364311-5):");
     if (!rut) return;
     localStorage.setItem(KEY_RUT_ACTUAL, rut);
   }
+
+  try {
+    exportarPacienteCSV(rut);
+  } catch (err) {
+    console.error(err);
+    alert(`Error exportando: ${err?.message || err}`);
+  }
+  
+    // Intentar usar el último rut guardado
+  //let rut = localStorage.getItem(KEY_RUT_ACTUAL);
+
+  // Si no hay, pedirlo
+  //if (!rut) {
+  //  rut = prompt("Ingrese RUT del paciente (ej: 28364311-5):");
+   // if (!rut) return;
+   // localStorage.setItem(KEY_RUT_ACTUAL, rut);
+  //}
 
   // Llama a tu función en export.js
   exportarPacienteCSV(rut);
