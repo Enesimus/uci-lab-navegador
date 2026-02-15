@@ -88,7 +88,7 @@ function construirMatrizClinica(rut) {
 
     col.registros.forEach(r => {
       // 1) nombre de examen (ya viene normalizado en r.examen)
-      let examen = r.examen || normalizarNombre(r.Prueba);
+      let examen = normalizarNombre(r.examen || r.Prueba);
 
       // 2) Diferenciación gases arteriales / venosos (si algún día lo guardamos)
       let estudio = (r.estudio || r.Estudio || "").toUpperCase();
