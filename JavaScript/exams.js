@@ -10,6 +10,7 @@ function normalizarClave(texto) {
         .trim();
 }
 
+// Definición de lista de examenes fija inicial
 const MAP_EXAMENES = {
     "PH": "pH",
     "PO2": "pO2",
@@ -51,7 +52,14 @@ const MAP_EXAMENES = {
     "DIMERO D": "Dimero D",
     "HEMATOCRITO": "Hcto",
     "HEMOGLOBINA": "Hb",
+    "VOLUMEN CORPUSCULAR MEDIO":"VCM",
+    "CHCM":"CHCM",
     "LEUCOCITOS": "Leucocitos",
+    "BASOFILOS %": "Basofilos %",
+    "EOSINOFILOS %":"Eosinofilos %",
+    "LINFOCITOS %":"Linfocitos %",
+    "MONOCITOS %":"Monocitos %",
+    "NEUTROFILOS %":"Neutrofilos %",
     "NEUTROFILOS": "RAN",
     "LINFOCITOS": "RAL",
     "GRANULOCITOS INMADUROS %": "% inmaduros",
@@ -59,6 +67,23 @@ const MAP_EXAMENES = {
     "PROTEINA C REACTIVA": "PCR",
     "PROCALCITONINA": "PCT"
 };
+
+// Definicion de lista de examenes que se excluiran
+const MAP_EXAMENES_EXCL = [
+    "C02 TOTAL (TCO2)",
+    "BASOFILOS",
+    "EOSINOFILOS",
+    "HEMOGLOBINA CORPUSCULAR MEDIA",
+    "MONOCITOS",
+    "ERITROCITOS",
+    "RDW-CV",
+];
+
+const SET_EXCL = new Set(MAP_EXAMENES_EXCL.map(normalizarClave));
+
+function examenExcluido(nombre) {
+  return SET_EXCL.has(normalizarClave(nombre));
+}
 
 function normalizarNombre(texto) {
     const clave = normalizarClave(texto);

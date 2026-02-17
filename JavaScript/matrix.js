@@ -4,7 +4,7 @@ console.log("matrix.js cargado - build", "2026-02-14 A");
 function esResultadoValido(r) {
   if (!r) return false;
 
-  // En nuestra versión “madura”, los registros ya vienen normalizados desde content.js
+  // Los registros ya vienen normalizados desde content.js
   // y se guardan en storage.js con este shape:
   // { fechaValidacion, examen, valor, unidad, referencia }
   // Igual dejamos fallback por si en el futuro guardamos también el HTML crudo.
@@ -25,7 +25,8 @@ function construirMatrizClinica(rut) {
 
   const paciente = data.paciente;
 
-  // ===== 1) Construir columnas desde órdenes =====
+  // 1. Construir columnas desde órdenes
+
   const columnas = Object.entries(data.ordenes)
     .map(([orden, contenido]) => {
       const registrosValidos = (contenido.registros || []).filter(esResultadoValido);
@@ -55,12 +56,12 @@ function construirMatrizClinica(rut) {
 
   if (!columnas.length) return null;
 
-  // ===== 2) Ordenar cronológicamente + secundario por número de orden =====
+  // 2. Ordenar cronológicamente + secundario por número de orden
   function parseFechaLocal(ts) {
   if (!ts) return null;
   // "YYYY-MM-DD HH:MM" -> "YYYY-MM-DDTHH:MM"
   return new Date(ts.replace(" ", "T"));
-}
+  }
 
   columnas.sort((a, b) => {
 
@@ -73,7 +74,7 @@ function construirMatrizClinica(rut) {
     return a.orden.localeCompare(b.orden, undefined, { numeric: true });
   });
 
-  // ===== 3) Crear filas base (orden fijo desde MAP_EXAMENES) =====
+  // 3. Crear filas base (orden fijo desde MAP_EXAMENES)
   const ordenBaseFilas = Object.values(MAP_EXAMENES);
   const filas = {};
   const examenesExtra = new Set();
@@ -82,15 +83,21 @@ function construirMatrizClinica(rut) {
     filas[ex] = {};
   });
 
-  // ===== 4) Rellenar matriz =====
+  // 4. Rellenar matriz
   columnas.forEach(col => {
     const timestamp = col.timestamp;
 
     col.registros.forEach(r => {
-      // 1) nombre de examen (ya viene normalizado en r.examen)
-      let examen = normalizarNombre(r.examen || r.Prueba);
+    // 1) nombre de examen (ya viene normalizado en r.examen)
+      const examenCrudo = (r.examen || r.Prueba || "").trim();
+      if (!examenCrudo) return;
 
-      // 2) Diferenciación gases arteriales / venosos (si algún día lo guardamos)
+    // 1.1 Excluir exámenes no deseados (comparando contra el nombre crudo)
+      if (typeof examenExcluido === "function" && examenExcluido(examenCrudo)) return;
+
+      let examen = normalizarNombre(examenCrudo);
+
+    // 2. Diferenciación gases arteriales / venosos (si algún día lo guardamos)
       let estudio = (r.estudio || r.Estudio || "").toUpperCase();
       if (estudio.includes("ARTERIAL")) examen += "_A";
       else if (estudio.includes("VENOS")) examen += "_V";
@@ -100,18 +107,18 @@ function construirMatrizClinica(rut) {
         filas[examen] = {};
       }
 
-      // 3) valor
+    // 3. valor
       filas[examen][timestamp] = (r.valor ?? r.Resultado ?? "");
     });
   });
 
-  // ===== 5) Orden final de filas (fijo + extras) =====
+  // 5. Orden final de filas (fijo + extras)
   const ordenFinalFilas = [
     ...ordenBaseFilas,
     ...Array.from(examenesExtra)
   ];
 
-  // ===== 6) Retorno estructurado =====
+  // 6. Retorno estructurado
   return {
     paciente,
     columnas: columnas.map(c => ({ orden: c.orden, timestamp: c.timestamp })),
