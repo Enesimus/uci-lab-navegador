@@ -4,7 +4,7 @@ function convertirAMatrizBidimensional(matrizClinica) {
 
     const { columnas, filas, ordenFilas } = matrizClinica;
 
-    // ===== 1️⃣ Encabezado =====
+    // 1. Encabezado
     const header = ["Examen"];
 
     columnas.forEach(col => {
@@ -13,7 +13,7 @@ function convertirAMatrizBidimensional(matrizClinica) {
 
     const matriz = [header];
 
-    // ===== 2️⃣ Filas =====
+    // 2. Filas
     ordenFilas.forEach(nombreExamen => {
 
         const fila = [nombreExamen];
@@ -96,7 +96,7 @@ function exportarPacienteCSV(rut) {
 
     const { paciente, ordenes } = data;
 
-    // ===== 1️⃣ Metadatos =====
+    // Metadatos
     const ahora = new Date();
     const fechaExport =
         ahora.getFullYear() + "-" +
@@ -108,12 +108,12 @@ function exportarPacienteCSV(rut) {
     const meta = [
         ["Paciente", paciente.nombre],
         ["RUT", paciente.rut],
-        ["Fecha exportación", fechaExport],
-        ["Total órdenes", Object.keys(ordenes).length],
+        ["Fecha exportacion", fechaExport],
+        ["Total ordenes", Object.keys(ordenes).length],
         []
     ];
 
-    // ===== 2️⃣ Convertir todo a matriz completa =====
+    // Convertir todo a matriz completa
     const matrizCompleta = [
         ...meta,
         ...matriz
@@ -122,4 +122,58 @@ function exportarPacienteCSV(rut) {
     const contenidoCSV = generarCSV(matrizCompleta);
 
     descargarCSV(`UCI_${paciente.rut}.csv`, contenidoCSV);
+};
+
+function descargarJSON(nombreArchivo, obj) {
+  const contenido = JSON.stringify(obj, null, 2);
+  const blob = new Blob([contenido], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
+
+// Exporta TODOS los pacientes guardados como un solo JSON
+function exportarBackupJSON() {
+  const backup = {
+    version: 1,
+    creadoEn: new Date().toISOString(),
+    origen: "UCI Lab Extractor",
+    pacientes: {}
+  };
+
+  // Todas las claves UCI_<rut>
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (!k.startsWith("UCI_")) continue;
+    if (k === "UCI_RUT_ACTUAL") continue;
+
+    try {
+      const raw = localStorage.getItem(k);
+      const data = JSON.parse(raw || "null");
+      if (data) backup.pacientes[k] = data;
+    } catch (e) {
+      // si algo no parsea, lo guardamos como string
+      backup.pacientes[k] = { __raw: localStorage.getItem(k) };
+    }
+  }
+
+  // Nombre archivo: UCI_backup_YYYY-MM-DD_HHMM.json
+  const ahora = new Date();
+  const yyyy = ahora.getFullYear();
+  const mm = String(ahora.getMonth() + 1).padStart(2, "0");
+  const dd = String(ahora.getDate()).padStart(2, "0");
+  const hh = String(ahora.getHours()).padStart(2, "0");
+  const mi = String(ahora.getMinutes()).padStart(2, "0");
+
+  const nombre = `UCI_backup_${yyyy}-${mm}-${dd}_${hh}${mi}.json`;
+  descargarJSON(nombre, backup);
+}
+

@@ -4,42 +4,6 @@ function obtenerClavePaciente(rut) {
     return `UCI_${rut}`;
 }
 
-/* function guardar(contexto) {
-    const { paciente, orden, registros } = contexto;
-
-    if (!paciente?.rut || !orden) {
-        console.warn("Datos incompletos para guardar");
-        return;
-    }
-
-    if (!registros?.length) {
-        console.warn("Orden sin registros");
-        return;
-    }
-
-    const clave = obtenerClavePaciente(paciente.rut);
-
-    // Obtener datos existentes
-    let data = JSON.parse(localStorage.getItem(clave) || "null");
-
-    if (!data) {
-        data = {
-            paciente: paciente,
-            ordenes: {}
-        };
-    }
-
-    // Reemplazar orden completa
-    data.ordenes[orden] = {
-        fechaExtraccion: new Date().toISOString(),
-        registros: registros
-    };
-
-    localStorage.setItem(clave, JSON.stringify(data)); 
-
-    console.log(`Orden ${orden} guardada correctamente`);
-}*/
-
 function firmaRegistros(registros) {
   return (registros || [])
     .map(r => `${r.examen}|${r.fechaValidacion}|${r.valor}|${r.unidad}`)

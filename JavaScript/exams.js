@@ -77,6 +77,8 @@ const MAP_EXAMENES_EXCL = [
     "MONOCITOS",
     "ERITROCITOS",
     "RDW-CV",
+    "GRANULOCITOS INMADUROS",
+    "TP SEGUNDOS"
 ];
 
 const SET_EXCL = new Set(MAP_EXAMENES_EXCL.map(normalizarClave));

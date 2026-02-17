@@ -133,3 +133,14 @@ document.getElementById("btnBorrarPaciente").addEventListener("click", () => {
     alert(`Error borrando paciente: ${err?.message || err}`);
   }
 });
+
+// Botón: Backup
+
+document.getElementById("btnBackupJSON").addEventListener("click", () => {
+  try {
+    exportarBackupJSON();
+  } catch (err) {
+    console.error(err);
+    alert(`Error exportando backup: ${err?.message || err}`);
+  }
+});
