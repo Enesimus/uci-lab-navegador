@@ -18,7 +18,7 @@
 
   "host_permissions": [
     "http://200.72.31.213/*",
-    "https://DOMINIO_INTERNO/*"
+    "http://10.6.127.136/*"
   ],
 
   "action": {
@@ -30,7 +30,7 @@
     {
       "matches": [
         "http://200.72.31.213/GestionIntegrada/*", 
-        "https://DOMINIO_INTERNO/GestionIntegrada/*"
+        "http://10.6.127.136/GestionIntegrada/*"
       ],
       "js": ["content.js"]
     }

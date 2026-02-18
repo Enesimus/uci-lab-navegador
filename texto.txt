@@ -17,3 +17,5 @@ Válidos
 No Válidos
 - Pendiente
 - Rechazado
+
+http://10.6.127.136/GestionIntegrada/Clinicos
