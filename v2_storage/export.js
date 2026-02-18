@@ -1,22 +1,35 @@
 // export.js
 
-function convertirAMatrizBidimensional(matrizClinica) {
+function convertirAMatrizBidimensional(matrizClinica, opciones = {}) {
   if (!matrizClinica) return null;
 
   const { columnas, filas, ordenFilas } = matrizClinica;
 
-  // ===== 1️. Encabezado =====
+  const incluirFilaHash = (opciones.incluirFilaHash !== false); // default true
+  const hashCompleto = !!opciones.hashCompleto;                 // default false
+
+  // ===== 1) Encabezado =====
   const header = ["Examen"];
 
   columnas.forEach(col => {
-    // Mantengo formato simple para CSV (una celda por columna)
-    // Si después quieres 3 líneas (fecha/hora/orden) lo hacemos en viewer, no en CSV.
-    header.push(`${col.timestamp} (${col.orden})`);
+    const stamp = col.timestamp || "";
+    const ord = col.orden || "";
+    header.push(`${stamp} (#${ord})`);
   });
 
   const matriz = [header];
 
-  // ===== 2️. Filas =====
+  // ===== 1b) Fila HASH (trazabilidad) =====
+  if (incluirFilaHash) {
+    const filaHash = ["HASH"];
+    columnas.forEach(col => {
+      const h = col.hash ? String(col.hash) : "";
+      filaHash.push(hashCompleto ? h : h.slice(0, 8));
+    });
+    matriz.push(filaHash);
+  }
+
+  // ===== 2) Filas =====
   ordenFilas.forEach(nombreExamen => {
     const fila = [nombreExamen];
 
@@ -34,25 +47,26 @@ function convertirAMatrizBidimensional(matrizClinica) {
 function generarCSV(matriz) {
   if (!matriz || !Array.isArray(matriz)) return null;
 
-  const lineas = matriz.map(fila =>
-    fila.map(celda => {
-      if (celda === null || celda === undefined) return "";
+  const escapeCelda = (celda) => {
+    if (celda === null || celda === undefined) return "";
+    const texto = String(celda);
 
-      const texto = String(celda);
+    // Escapar comillas
+    const escapado = texto.replace(/"/g, '""');
 
-      // Escapar comillas si existen
-      const escapado = texto.replace(/"/g, '""');
+    // CSV seguro: si hay ;, salto de línea, \r o comillas, envolver en comillas
+    if (
+      escapado.includes(";") ||
+      escapado.includes("\n") ||
+      escapado.includes("\r") ||
+      escapado.includes('"')
+    ) {
+      return `"${escapado}"`;
+    }
+    return escapado;
+  };
 
-      // Si contiene ; o salto de línea, envolver en comillas
-      if (escapado.includes(";") || escapado.includes("\n") || escapado.includes("\r")) {
-        return `"${escapado}"`;
-      }
-
-      return escapado;
-    }).join(";")
-  );
-
-  return lineas.join("\n");
+  return matriz.map(fila => fila.map(escapeCelda).join(";")).join("\n");
 }
 
 function descargarCSV(nombreArchivo, contenidoCSV) {
@@ -71,18 +85,21 @@ function descargarCSV(nombreArchivo, contenidoCSV) {
   URL.revokeObjectURL(url);
 }
 
-// Ahora async: usa chrome.storage.local vía storage.js (obtener/guardar async)
-async function exportarPacienteCSV(rut) {
+// Usa chrome.storage.local vía storage.js + construirMatrizClinica (async)
+async function exportarPacienteCSV(rut, opciones = {}) {
   const data = await obtener(rut);
   if (!data) {
     alert("No hay datos para este paciente");
     return;
   }
 
-  // await funciona aunque construirMatrizClinica aún no sea async
   const matrizClinica = await construirMatrizClinica(rut);
-  const matriz = convertirAMatrizBidimensional(matrizClinica);
+  if (!matrizClinica) {
+    alert("No se pudo construir la matriz");
+    return;
+  }
 
+  const matriz = convertirAMatrizBidimensional(matrizClinica, opciones);
   if (!matriz) {
     alert("No se pudo construir la matriz");
     return;
@@ -90,7 +107,7 @@ async function exportarPacienteCSV(rut) {
 
   const { paciente, ordenes } = data;
 
-  // ===== 1️. Metadatos =====
+  // ===== 1) Metadatos =====
   const ahora = new Date();
   const fechaExport =
     ahora.getFullYear() + "-" +
@@ -107,11 +124,8 @@ async function exportarPacienteCSV(rut) {
     []
   ];
 
-  // ===== 2️. Matriz completa =====
-  const matrizCompleta = [
-    ...meta,
-    ...matriz
-  ];
+  // ===== 2) Matriz completa =====
+  const matrizCompleta = [...meta, ...matriz];
 
   const contenidoCSV = generarCSV(matrizCompleta);
   descargarCSV(`UCI_${paciente?.rut ?? rut}.csv`, contenidoCSV);

@@ -123,6 +123,24 @@ La dirección clínica, conceptual y las decisiones funcionales corresponden al 
 
 ## 9. Estado Actual
 
-Versión: 1.x
+Versión: 1.2
 Estado: MVP funcional con almacenamiento persistente y exportación básica.
 En transición hacia mejora integral de experiencia de usuario.
+
+>💡 **Nota**: corregir permisos de acceso en el ```manifest.json``` cuando se confirmen las rutas tanto en intranet como en acceso externo según el siguiente fragmento:
+>
+> ``` JSON
+>"host_permissions": [
+>  "http://200.72.31.213/*",
+>  "https://DOMINIO_INTERNO/*"
+>],
+>"content_scripts": [
+>  {
+>    "matches": [
+>      "http://200.72.31.213/GestionIntegrada/*",
+>      "https://DOMINIO_INTERNO/GestionIntegrada/*"
+>    ],
+>    "js": ["content.js"]
+>  }
+>]
+>```

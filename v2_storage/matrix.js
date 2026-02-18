@@ -20,24 +20,33 @@ async function construirMatrizClinica(rut) {
 
   const paciente = data.paciente;
 
-  const columnas = Object.entries(data.ordenes)
-    .map(([ordenKey, contenido]) => {
+    const columnas = Object.entries(data.ordenes)
+      .map(([hashKey, contenido]) => {
       const registrosValidos = (contenido.registros || []).filter(esResultadoValido);
       if (!registrosValidos.length) return null;
 
       const fechasBase = registrosValidos
-        .map(r => r.fechaValidacion || normalizarFecha(r.FechaValidacion))
+        .map(r => r.fechaValidacion)
         .filter(Boolean)
         .sort();
 
-      const fallback = contenido.timestamp || contenido.fechaExtraccion;
-      const fechas = fechasBase.length ? fechasBase : (fallback ? [fallback] : []);
+      // timestamp preferido: el más antiguo válido de los registros;
+      // si no hay, usar timestamp/fechaExtraccion del objeto orden
+      const timestamp = (fechasBase[0] || contenido.timestamp || contenido.fechaExtraccion || null);
+      if (!timestamp) return null;
 
-      if (!fechas.length) return null;
+      // label de orden para la cabecera (NO mostrar hash completo)
+      const ordenLabel =
+        (contenido.orden != null && String(contenido.orden).trim() !== "")
+          ? String(contenido.orden).trim()
+          : (contenido.ordenOriginal && String(contenido.ordenOriginal).trim() !== "")
+            ? String(contenido.ordenOriginal).trim()
+            : `hash:${String(hashKey).slice(0, 8)}`;
 
       return {
-        orden: (contenido.ordenOriginal || ordenKey),
-        timestamp: fechas[0],
+        hash: contenido.hash || hashKey,
+        orden: ordenLabel,
+        timestamp,
         registros: registrosValidos
       };
     })
@@ -55,7 +64,7 @@ async function construirMatrizClinica(rut) {
     return String(a.orden).localeCompare(String(b.orden), undefined, { numeric: true });
   });
 
-  const ordenBaseFilas = Object.values(MAP_EXAMENES);
+  const ordenBaseFilas = Array.from(new Set(Object.values(MAP_EXAMENES)));
   const filas = {};
   const examenesExtra = new Set();
 
@@ -68,10 +77,15 @@ async function construirMatrizClinica(rut) {
       const examenCrudo = (r.examen || r.Prueba || "").trim();
       if (!examenCrudo) return;
 
-      // Exclusión opcional (si definiste examenExcluido en exams.js)
-      if (typeof examenExcluido === "function" && examenExcluido(examenCrudo)) return;
+      // Mapeo de nombres alternativos
+      const examenCanonico = (typeof mapearExamen === "function")
+        ? mapearExamen(examenCrudo)
+        : examenCrudo;
 
-      let examen = normalizarNombre(examenCrudo);
+      // Exclusión opcional (si definiste examenExcluido en exams.js)
+      if (typeof examenExcluido === "function" && examenExcluido(examenCanonico)) return;
+
+      let examen = normalizarNombre(examenCanonico);
 
       const estudio = (r.estudio || r.Estudio || "").toUpperCase();
       if (estudio.includes("ARTERIAL")) examen += "_A";
@@ -88,7 +102,7 @@ async function construirMatrizClinica(rut) {
 
   return {
     paciente,
-    columnas: columnas.map(c => ({ orden: c.orden, timestamp: c.timestamp })),
+    columnas: columnas.map(c => ({ hash: c.hash, orden: c.orden, timestamp: c.timestamp })),
     filas,
     ordenFilas: [...ordenBaseFilas, ...Array.from(examenesExtra)]
   };

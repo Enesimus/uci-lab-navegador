@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "UCI Lab Extractor",
-  "version": "1.1",
-  "description": "Extracción y estructuración longitudinal de exámenes UCI",
+  "version": "1.2",
+  "description": "Extracción y estructuración longitudinal de exámenes UCI, con opción de visualización y exportación para análisis posterior.",
   "icons": {
     "16": "images/icon-16.png",
     "32": "images/icon-32.png",
@@ -17,8 +17,8 @@
   ],
 
   "host_permissions": [
-    "https://*/*",
-    "http://*/*"
+    "http://200.72.31.213/*",
+    "https://DOMINIO_INTERNO/*"
   ],
 
   "action": {
@@ -28,9 +28,11 @@
 
   "content_scripts": [
     {
-      "matches": ["https://*/*", "http://*/*"],
-      "js": ["exams.js", "storage.js", "matrix.js" ,"content.js"],
-      "run_at": "document_idle"
+      "matches": [
+        "http://200.72.31.213/GestionIntegrada/*", 
+        "https://DOMINIO_INTERNO/GestionIntegrada/*"
+      ],
+      "js": ["content.js"]
     }
   ]
 }

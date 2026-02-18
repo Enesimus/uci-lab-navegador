@@ -55,3 +55,9 @@ button.loading::after {
     background-color: #b00020;
     color: white;
 }
+
+.mini-info {
+  font-size: 12px;
+  margin-top: 6px;
+  color: #444;
+}

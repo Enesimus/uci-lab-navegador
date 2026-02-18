@@ -19,6 +19,8 @@ const MAP_EXAMENES = {
     "EXCESO DE BASE (BEB)": "BE",
     "SATURACION DE 02 CALCULADA (SO2C)": "satO2",
     "ACIDO LACTICO (LACTATO)": "Lactato",
+    "LACTATO": "Lactato",
+    "ACIDO LACTICO": "Lactato",
     "AMONIO": "Amonio",
     "SODIO": "Na",
     "POTASIO": "K",
@@ -37,7 +39,7 @@ const MAP_EXAMENES = {
     "FOSFATASA ALCALINA": "FA",
     "GOT": "GOT",
     "GPT": "GPT",
-    "TRIGLICERIDOS": "Trigl",
+    "TRIGLICERIDOS": "Trigliceridos",
     "ALBUMINA": "Albumina",
     "LDH": "LDH",
     "AMILASA": "Amilasa",
@@ -67,6 +69,30 @@ const MAP_EXAMENES = {
     "PROTEINA C REACTIVA": "PCR",
     "PROCALCITONINA": "PCT"
 };
+
+function normalizarNombreExamen(nombre) {
+  if (!nombre) return "";
+
+  return String(nombre)
+    .toUpperCase()
+    .normalize("NFD")                 // quitar acentos
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function mapearExamen(nombreOriginal) {
+  const norm = normalizarNombreExamen(nombreOriginal);
+
+  const mapaNormalizado = {};
+  Object.entries(MAP_EXAMENES).forEach(([k, v]) => {
+    mapaNormalizado[normalizarNombreExamen(k)] = v;
+  });
+
+  return mapaNormalizado[norm] || nombreOriginal;
+}
+
+
 
 // Definicion de lista de examenes que se excluiran
 const MAP_EXAMENES_EXCL = [
