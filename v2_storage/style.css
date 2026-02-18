@@ -1,0 +1,57 @@
+/* Estilo de examen agregado como toast */
+
+.toast {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2e7d32;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.2);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 1000;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+.toast.error {
+  background: #b00020;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Deshabilita boton */
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.loading {
+  position: relative;
+}
+
+button.loading::after {
+  content: "…";
+  margin-left: 6px;
+  animation: dots 1s infinite;
+}
+
+@keyframes dots {
+  0% { opacity: .2; }
+  50% { opacity: 1; }
+  100% { opacity: .2; }
+}
+
+.badge {
+    background-color: #b00020;
+    color: white;
+}

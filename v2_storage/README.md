@@ -15,7 +15,7 @@ El objetivo es transformar información fragmentada en una vista clínica longit
 
 ## 2. Contexto Clínico
 
-- Entorno: Unidad de Cuidados Intensivos Pediátricos como punto de partida. Pudiera extenderse a cualquier unidad de paciente hospitalizado. 
+- Entorno: Unidad de Cuidados Intensivos Pediátricos como punto de partida. Pudiera extenderse a cualquier unidad de paciente hospitalizado, o en atencion ambulatoria cuando se requiera un seguimiento longitudinal de examenes.
 - Necesidad: Visualización rápida de tendencias y evolución de parámetros.
 - Problema actual: Sistemas institucionales presentan resultados en forma episódica, no longitudinal.
 

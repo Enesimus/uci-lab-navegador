@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <button id="btnExtraer">Extraer Orden</button>
+    <span id="badgeOrdenes" class="badge hidden">Órdenes: 0</span>
   <button id="btnExportar">Exportar CSV</button>
   <button id="btnBackupJSON">Exportar Backup JSON</button>
   <button id="btnImportJSON">Importar Backup JSON</button>
@@ -20,5 +24,7 @@
   <script src="matrix.js"></script>
   <script src="export.js"></script>
   <script src="popup.js"></script>
+
+  <div id="toast" class="toast hidden"></div>
 </body>
 </html>
