@@ -1,249 +1,251 @@
-// popup.js
-// MV3, almacenamiento SOLO en chrome.storage.local (vía storage.js async)
+// popup.js (1.2.1 UX) — versión coherente con storage async + hash-based
+// Requiere (en popup.html): exams.js, storage.js, matrix.js, export.js, popup.js
+// - Alerts SOLO para errores
+// - Éxito por status no bloqueante
+// - Lee/escribe rut actual vía chrome.storage.local (storage.js)
+// - Upsert de órdenes por hash
 
-function setBotonExtraerEstado(cargando) {
-  const btn = document.getElementById("btnExtraer");
-  if (!btn) return;
+const $ = (id) => document.getElementById(id);
 
-  if (cargando) {
-    btn.disabled = true;
-    btn.classList.add("loading");
-  } else {
-    btn.disabled = false;
-    btn.classList.remove("loading");
+// UI refs
+const elNombre = $("pacienteNombre");
+const elRut = $("pacienteRut");
+const elOrdenes = $("pacienteOrdenes");
+const elStatus = $("status");
+
+const btnExtraer = $("btnExtraer");
+const btnExportar = $("btnExportar");
+const btnVer = $("btnVer"); // aún disabled en html
+
+function setBusy(isBusy) {
+  if (btnExtraer) btnExtraer.disabled = isBusy;
+  if (btnExportar) btnExportar.disabled = isBusy;
+  // btnVer no depende de busy; depende de si hay rut válido
+}
+
+function setVerEnabled(rut) {
+  if (!btnVer) return;
+  const ok = !!(rut && String(rut).trim());
+  btnVer.disabled = !ok;
+  btnVer.title = ok ? "" : "Primero extrae o selecciona un paciente (RUT).";
+}
+
+function abrirViewer(rut) {
+  const r = (rut || "").trim();
+  if (!r) return;
+
+  const url = chrome.runtime.getURL(`viewer.html?rut=${encodeURIComponent(r)}`);
+  chrome.tabs.create({ url });
+}
+
+function showStatus(message, kind = "success", ms = 3000) {
+  if (!elStatus) return;
+
+  elStatus.textContent = message || "";
+  elStatus.classList.remove("success", "error", "warn");
+  if (kind) elStatus.classList.add(kind);
+
+  if (ms && message) {
+    window.clearTimeout(showStatus._t);
+    showStatus._t = window.setTimeout(() => {
+      elStatus.textContent = "";
+      elStatus.classList.remove("success", "error", "warn");
+    }, ms);
   }
 }
 
-// Toast no bloqueante
-function mostrarToast(mensaje, tipo = "success", duracion = 3500) {
-  const toast = document.getElementById("toast");
-  if (!toast) return;
-
-  toast.textContent = mensaje;
-  toast.className = "toast"; // reset
-
-  if (tipo === "error") toast.classList.add("error");
-
-  toast.classList.remove("hidden");
-  setTimeout(() => toast.classList.add("show"), 10);
-
-  setTimeout(() => {
-    toast.classList.remove("show");
-    setTimeout(() => toast.classList.add("hidden"), 250);
-  }, duracion);
+function renderPacienteVacio() {
+  if (elNombre) elNombre.textContent = "—";
+  if (elRut) elRut.textContent = "RUT: —";
+  if (elOrdenes) elOrdenes.textContent = "Órdenes: —";
 }
 
-// Badge Órdenes
-function actualizarBadgeOrdenes(total) {
-  const badge = document.getElementById("badgeOrdenes");
-  if (!badge) return;
+function renderPacienteDesdeData(data, rutFallback = "") {
+  const nombre = data?.paciente?.nombre || "—";
+  const rut = data?.paciente?.rut || rutFallback || "—";
+  const total = data?.ordenes ? Object.keys(data.ordenes).length : 0;
 
-  badge.textContent = `Órdenes: ${total}`;
-
-  if (typeof total === "number" && total > 0) badge.classList.remove("hidden");
-  else badge.classList.add("hidden");
+  if (elNombre) elNombre.textContent = nombre;
+  if (elRut) elRut.textContent = `RUT: ${rut}`;
+  if (elOrdenes) elOrdenes.textContent = `Órdenes: ${total}`;
 }
 
-// Helpers Promises para chrome.tabs.*
-function tabsQuery(queryInfo) {
-  return new Promise((resolve, reject) => {
-    chrome.tabs.query(queryInfo, (tabs) => {
-      const err = chrome.runtime.lastError;
-      if (err) return reject(err);
-      resolve(tabs);
-    });
-  });
-}
-
-function tabsSendMessage(tabId, message) {
-  return new Promise((resolve, reject) => {
-    chrome.tabs.sendMessage(tabId, message, (response) => {
-      const err = chrome.runtime.lastError;
-      if (err) return reject(err);
-      resolve(response);
-    });
-  });
-}
-
-// Habilita/deshabilita botón Viewer según haya rut actual
-async function actualizarEstadoViewer() {
-  const btn = document.getElementById("btnVerHTML");
-  if (!btn) return;
-
-  const rut = await obtenerRutActual();
-  btn.disabled = !rut;
-}
-
-// Mini info del paciente actual (si existe el elemento)
-async function actualizarInfoPaciente() {
-  const el = document.getElementById("infoPacientePopup");
-  if (!el) return;
-
-  const rut = await obtenerRutActual();
-  if (!rut) {
-    el.classList.add("hidden");
-    el.textContent = "";
+// Lee storage y refresca cabecera
+async function refrescarPacienteDesdeRut(rut) {
+  const r = (rut || "").trim();
+  if (!r) {
+    renderPacienteVacio();
     return;
   }
-
-  const data = await obtener(rut);
-  const nombre = data?.paciente?.nombre;
-  const rutData = data?.paciente?.rut || rut;
-
-  if (!nombre) {
-    el.classList.add("hidden");
-    el.textContent = "";
-    return;
-  }
-
-  el.textContent = `${nombre} — ${rutData}`;
-  el.classList.remove("hidden");
-}
-
-// Recalcula badge desde storage (seguro para reusar)
-async function refrescarBadgeDesdeRutActual() {
-  const rut = await obtenerRutActual();
-  if (!rut) {
-    actualizarBadgeOrdenes(0);
-    return;
-  }
-  const data = await obtener(rut);
-  const total = Object.keys(data?.ordenes || {}).length;
-  actualizarBadgeOrdenes(total);
-}
-
-// ====== LISTENERS ======
-
-document.getElementById("btnExtraer").addEventListener("click", async () => {
-  const inicio = Date.now();
-  setBotonExtraerEstado(true);
 
   try {
-    const tabs = await tabsQuery({ active: true, currentWindow: true });
+    const data = await obtener(r);
+    if (!data) {
+      if (elNombre) elNombre.textContent = "—";
+      if (elRut) elRut.textContent = `RUT: ${r}`;
+      if (elOrdenes) elOrdenes.textContent = "Órdenes: 0";
+      return;
+    }
+    renderPacienteDesdeData(data, r);
+  } catch (e) {
+    console.warn("No se pudo leer paciente desde storage:", e);
+    renderPacienteVacio();
+  }
+}
+
+/**
+ * Upsert hash-based:
+ * data = { paciente, ordenes: { [hash]: {hash, orden, ordenOriginal, timestamp, fechaExtraccion, registros } } }
+ *
+ * Compatible con matrix.js (usa contenido.timestamp/fechaExtraccion/registros + label orden/ordenOriginal/hash)
+ */
+async function upsertOrdenDesdeContexto(contexto) {
+  const paciente = contexto?.paciente;
+  const rut = (paciente?.rut || "").trim();
+  if (!rut) throw new Error("Contexto sin RUT.");
+
+  const hash = String(contexto?.hash || "").trim();
+  if (!hash) throw new Error("Contexto sin hash (ID estable).");
+
+  // Intentar mantener compatibilidad con extractor: orden numérica + ordenOriginal + timestamp
+  const orden = (contexto?.orden != null) ? String(contexto.orden).trim() : "";
+  const ordenOriginal = (contexto?.ordenOriginal != null) ? String(contexto.ordenOriginal).trim() : "";
+  const timestamp = (contexto?.timestamp != null) ? String(contexto.timestamp).trim() : null;
+
+  const registros = Array.isArray(contexto?.registros) ? contexto.registros : [];
+  if (!registros.length) throw new Error("Orden sin registros.");
+
+  // Leer data actual
+  const actual = (await obtener(rut)) || { paciente: paciente, ordenes: {} };
+
+  // Mantener paciente más reciente (por si cambian nombres/formatos)
+  actual.paciente = paciente || actual.paciente || { rut, nombre: "" };
+  if (!actual.ordenes) actual.ordenes = {};
+
+  // Upsert
+  actual.ordenes[hash] = {
+    hash,
+    orden: orden || undefined,               // opcional
+    ordenOriginal: ordenOriginal || undefined,
+    timestamp: timestamp || undefined,
+    fechaExtraccion: new Date().toISOString(),
+    registros
+  };
+
+  await guardar(rut, actual);
+
+  // Guardar rut actual
+  await guardarRutActual(rut);
+  setVerEnabled(rut);
+  return { rut, totalOrdenes: Object.keys(actual.ordenes).length };
+}
+
+async function extraerOrdenActiva() {
+  setBusy(true);
+  showStatus("Extrayendo orden…", "warn", 0);
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs?.[0];
     if (!tab?.id) {
-      mostrarToast("No se pudo detectar la pestaña activa.", "error");
+      setBusy(false);
+      showStatus("No se pudo acceder a la pestaña activa.", "error");
+      alert("Error: no se pudo acceder a la pestaña activa.");
       return;
     }
 
-    const response = await tabsSendMessage(tab.id, { action: "extraerOrden" });
-    if (!response || !response.ok) {
-      mostrarToast("Error al extraer orden.", "error");
-      return;
-    }
+    chrome.tabs.sendMessage(tab.id, { action: "extraerOrden" }, async (response) => {
+      const lastErr = chrome.runtime?.lastError;
+      if (lastErr) {
+        setBusy(false);
+        console.warn("sendMessage error:", lastErr.message);
+        showStatus("No se pudo extraer (página no compatible o sin informe abierto).", "error");
+        alert("No se pudo extraer la orden.\nVerifica que estás en el HIS y con el informe abierto.");
+        return;
+      }
 
-    const contexto = response.contexto;
+      if (!response || !response.ok) {
+        setBusy(false);
+        showStatus("No se pudo extraer la orden.", "error");
+        alert("Error al extraer orden");
+        return;
+      }
 
-    const rut = contexto?.paciente?.rut;
+      const contexto = response.contexto;
 
-    const hash = contexto?.hash;
-    const orden = contexto?.orden; // se mantiene por compatibilidad/visualización
-    const ordenOriginal = contexto?.ordenOriginal || "";
-    const timestamp = contexto?.timestamp || null;
-    const registros = contexto?.registros;
+      try {
+        const { rut, totalOrdenes } = await upsertOrdenDesdeContexto(contexto);
+        await refrescarPacienteDesdeRut(rut);
 
-    if (!rut || !orden || !hash) {
-      mostrarToast("Datos incompletos: falta RUT / orden / hash.", "error");
-      return;
-    }
-    if (!Array.isArray(registros) || registros.length === 0) {
-      mostrarToast("Orden sin registros (vacía).", "error");
-      return;
-    }
+        setBusy(false);
+        showStatus(`✔ Orden guardada. Total: ${totalOrdenes}`, "success");
+      } catch (e) {
+        console.error("Error guardando orden:", e);
+        setBusy(false);
+        showStatus("Error al guardar la orden.", "error");
+        alert(`Error: no se pudo guardar la orden.\n${e?.message || e}`);
+      }
+    });
+  });
+}
 
-    // 1) Cargar datos existentes
-    let data = await obtener(rut);
-    if (!data) {
-      data = { paciente: contexto.paciente, ordenes: {} };
-    } else {
-      data.paciente = contexto.paciente || data.paciente;
-      data.ordenes = data.ordenes || {};
-    }
+async function exportarCSV() {
+  setBusy(true);
 
-    const yaExistia = !!data.ordenes[hash];
-
-    // 2) Guardar/Reemplazar orden completa (key = hash)
-    data.ordenes[hash] = {
-      hash,
-      ordenOriginal,
-      orden,
-      timestamp,
-      fechaExtraccion: new Date().toISOString(),
-      registros
-    };
-
-    // 3) Persistir y setear rut actual
-    await guardar(rut, data);
-    await guardarRutActual(rut);
-
-    // 4) UI sync
-    await refrescarBadgeDesdeRutActual();
-    await actualizarEstadoViewer();
-    await actualizarInfoPaciente();
-
-    mostrarToast(yaExistia ? "Orden actualizada (reemplazada)." : "Orden guardada correctamente.");
-  } catch (err) {
-    console.error("Error en extracción/guardado:", err);
-    mostrarToast("Error al extraer/guardar", "error");
-  } finally {
-    const esperaMinima = 1000;
-    const delay = Math.max(0, esperaMinima - (Date.now() - inicio));
-    setTimeout(() => setBotonExtraerEstado(false), delay);
-  }
-});
-
-document.getElementById("btnExportar").addEventListener("click", async () => {
   try {
     let rut = await obtenerRutActual();
 
     if (!rut) {
+      setBusy(false);
+      showStatus("Ingresa el RUT del paciente para exportar.", "warn");
       rut = prompt("Ingrese RUT del paciente (ej: 28364311-5):");
       if (!rut) return;
       rut = rut.trim();
-      if (!rut) return;
-
       await guardarRutActual(rut);
-      await actualizarEstadoViewer();
+      setBusy(true);
     }
 
+    // exportarPacienteCSV es async en export.js 
     await exportarPacienteCSV(rut);
-  } catch (err) {
-    console.error("Error al exportar:", err);
-    mostrarToast("Error al exportar. Revisa consola.", "error");
+
+    await refrescarPacienteDesdeRut(rut);
+    setBusy(false);
+    showStatus("✔ CSV generado.", "success");
+  } catch (e) {
+    console.error("Error exportando CSV:", e);
+    setBusy(false);
+    showStatus("Error al exportar CSV.", "error");
+    alert("Error al exportar CSV");
   }
-});
+}
 
-document.getElementById("btnVerHTML").addEventListener("click", async () => {
-  try {
-    let rut = await obtenerRutActual();
-
-    if (!rut) {
-      rut = prompt("Ingrese RUT del paciente:");
-      if (!rut) return;
-      rut = rut.trim();
-      if (!rut) return;
-
-      await guardarRutActual(rut);
-      await actualizarEstadoViewer();
-      await actualizarInfoPaciente();
-      await refrescarBadgeDesdeRutActual();
-    }
-
-    const url = chrome.runtime.getURL(`viewer.html?rut=${encodeURIComponent(rut)}`);
-    chrome.tabs.create({ url });
-  } catch (err) {
-    console.error("Error al abrir viewer:", err);
-    mostrarToast("No se pudo abrir la vista HTML", "error");
-  }
-});
-
-// Init único
+// ==== Init ====
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    await refrescarBadgeDesdeRutActual();
-    await actualizarEstadoViewer();
-    await actualizarInfoPaciente();
+    const rut = await obtenerRutActual();
+    await refrescarPacienteDesdeRut(rut);
+    setVerEnabled(rut);
   } catch (e) {
-    console.warn("No se pudo inicializar popup:", e);
+    console.warn("No se pudo inicializar cabecera del popup:", e);
+    renderPacienteVacio();
   }
+
+  btnVer?.addEventListener("click", async () => {
+    const r = await obtenerRutActual();
+    if (!r) {
+      alert("No hay paciente seleccionado. Extrae una orden primero.");
+      return;
+    }
+    abrirViewer(r);
+  });
+
+  btnExtraer?.addEventListener("click", () => {
+    // evitamos doble click ansioso
+    if (btnExtraer.disabled) return;
+    extraerOrdenActiva();
+  });
+
+  btnExportar?.addEventListener("click", () => {
+    if (btnExportar.disabled) return;
+    exportarCSV();
+  });
 });

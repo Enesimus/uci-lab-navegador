@@ -40,26 +40,19 @@ Persistencia por paciente (UCI_\<rut>)
 ### 3.3 Modelo de datos
 
 ``` JSON
+
 {
   "paciente": { "rut": "...", "nombre": "..." },
   "ordenes": {
-    "orden__timestamp": {
+    "<hash>": {
       "ordenOriginal": "...",
       "timestamp": "...",
       "fechaExtraccion": "...",
-      "firma": "...",
-      "registros": [
-        {
-          "examen": "...",
-          "valor": "...",
-          "unidad": "...",
-          "referencia": "...",
-          "fechaValidacion": "..."
-        }
-      ]
+      "registros": [...]
     }
   }
 }
+
 ```
 
 ## 4. Fases del Proyecto
@@ -124,23 +117,84 @@ La dirección clínica, conceptual y las decisiones funcionales corresponden al 
 ## 9. Estado Actual
 
 Versión: 1.2
-Estado: MVP funcional con almacenamiento persistente y exportación básica.
-En transición hacia mejora integral de experiencia de usuario.
+Estado: Versión estable con arquitectura hash-based, trazabilidad y viewer clínico funcional.
 
->💡 **Nota**: corregir permisos de acceso en el ```manifest.json``` cuando se confirmen las rutas tanto en intranet como en acceso externo según el siguiente fragmento:
+## 10. Flujo de Procesamiento de Datos
+
+### Paso 1 – Extracción
+
+- ```content.js``` extrae:
+  - Paciente
+  - Orden
+  - Registros crudos
+
+### Paso 2 – Normalización
+
+- Alias mapping de exámenes
+- Normalización de fecha
+- Normalización numérica
+- Unificación semántica (ej. Lactato)
+
+### Paso 3 – Canonicalización
+
+Se construye una representación determinística de la orden.
+
+### Paso 4 – Hash
+
+Se calcula:
+
+- SHA-256 (principal)
+- FNV-1a (fallback)
+
+El hash se convierte en clave única.
+
+### Paso 5 – Persistencia
+
+Se guarda en:
+
+``` YAML
+
+chrome.storage.local
+Clave: UCI_<rut>
+Subclave: <hash>
+
+```
+
+### Paso 6 – Construcción de matriz
+
+- Se ordenan columnas cronológicamente
+- Se construyen filas según MAP_EXAMENES
+- Se agregan extras dinámicos
+
+### Paso 7 – Visualización
+
+- Agrupación por día
+- Highlight última columna
+- Alineación numérica
+- Separadores visuales
+
+### Paso 8 – Exportación
+
+- Construcción matriz bidimensional
+- Inserción de metadata
+- Inserción de fila HASH
+- Generación CSV
+
+>💡 **Nota**: los permisos de acceso en el ```manifest.json``` para intranet como en acceso externo son:
 >
 > ``` JSON
 >"host_permissions": [
 >  "http://200.72.31.213/*",
->  "https://DOMINIO_INTERNO/*"
+>  "http://10.6.127.136/*"
 >],
 >"content_scripts": [
 >  {
 >    "matches": [
 >      "http://200.72.31.213/GestionIntegrada/*",
->      "https://DOMINIO_INTERNO/GestionIntegrada/*"
+>      "https://10.6.127.136/GestionIntegrada/*"
 >    ],
 >    "js": ["content.js"]
 >  }
 >]
 >```
+

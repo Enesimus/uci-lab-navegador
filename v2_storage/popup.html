@@ -3,11 +3,50 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UCI Lab Extractor</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <button id="btnExtraer">Extraer Orden</button>
+  <div class="card">
+    <div class="header">
+      <h1 class="title">UCI Lab Extractor</h1>
+      <p class="subtitle">Extracción y vista longitudinal de exámenes</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Paciente actual</div>
+
+    <!-- popup.js llena estos campos -->
+    <div class="paciente">
+      <div class="name" id="pacienteNombre">-</div>
+      <div class="meta">
+        <span id="pacienteRut">RUT: -</span>
+        <span id="pacienteOrdenes">Órdenes: -</span>
+      </div>
+    </div>
+
+    <div class="hint">
+      Tip: Abre el informe de laboratorio en el navegador y luego usa "Extraer ordenactual".
+    </div>
+  </div>
+<div class="section">
+  <div class="label">Acciones
+    <div class="btns">
+      <button id="btnExtraer">Extraer orden actual</button>
+      <button id="btnVer">Ver resumen longitudinal</button>
+      <button id="btnExportar">Exportar CSV</button>
+    </div>
+    <!-- Feedback no bloqueante -->
+    <div id="status" aria-live="polite"></div>  
+  </div>
+
+  <div class="footer">v1.2.x</div>
+</div>
+
+  <!-- <button id="btnExtraer">Extraer Orden</button>
     <span id="badgeOrdenes" class="badge hidden">Órdenes: 0</span>
     <div id="infoPacientePopup" class="mini-info hidden"></div>
   <button id="btnExportar">Exportar CSV</button>
@@ -18,14 +57,14 @@
   <button id="btnVerStorage">Ver almacenamiento</button>
   <button id="btnBorrarPaciente">Borrar paciente</button>
 
-  <pre id="storageView" style="white-space: pre-wrap; font-size: 12px; border: 1px solid #ddd; padding: 8px; margin-top: 10px; max-height: 320px; overflow: auto; display: none;"></pre>
-
+  <pre id="storageView" style="white-space: pre-wrap; font-size: 12px; border: 1px solid #ddd; padding: 8px; margin-top: 10px; max-height: 320px; overflow: auto; display: none;"></pre> -->
+<!-- Scripts -->
   <script src="exams.js"></script>
   <script src="storage.js"></script>
   <script src="matrix.js"></script>
   <script src="export.js"></script>
   <script src="popup.js"></script>
 
-  <div id="toast" class="toast hidden"></div>
+<!-- <div id="toast" class="toast hidden"></div> -->
 </body>
 </html>

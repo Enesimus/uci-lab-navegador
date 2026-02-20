@@ -104,6 +104,7 @@ function aplicarFiltros(matriz) {
 function renderInfo(data, matriz) {
   if (!data) {
     $("infoPaciente").textContent = "";
+    renderPrintHeader(null, null);  
     return;
   }
 
@@ -122,6 +123,46 @@ function renderInfo(data, matriz) {
     <span class="chip">RUT: <b>${escapeHtml(rut)}</b></span>
     <span class="chip">Órdenes: <b>${nOrdenes}</b></span>
     <span class="chip">Rango: <b>${escapeHtml(rango)}</b></span>
+  `;
+  renderPrintHeader(data, matriz);
+}
+
+function renderPrintHeader(data, matriz) {
+  const el = document.getElementById("printHeader");
+  if (!el) return;
+
+  if (!data) {
+    el.innerHTML = "";
+    return;
+  }
+
+  const nombre = data.paciente?.nombre || "";
+  const rut = data.paciente?.rut || state.rut || "";
+  const nOrdenes = Object.keys(data.ordenes || {}).length;
+
+  let rango = "";
+  if (matriz?.columnas?.length) {
+    const fechas = matriz.columnas.map(c => c.timestamp).filter(Boolean).sort();
+    rango = `${fechas[0]} → ${fechas[fechas.length - 1]}`;
+  }
+
+  const hoy = new Date();
+  const fechaImp = hoy.toISOString().slice(0,10); // YYYY-MM-DD
+
+  el.innerHTML = `
+    <div class="ph-row">
+      <div class="ph-left">
+        <div class="ph-title">UCI Lab Extractor – Resumen longitudinal</div>
+        <div class="ph-sub">
+          <b>${escapeHtml(nombre)}</b> · RUT: <b>${escapeHtml(rut)}</b> · Órdenes: <b>${nOrdenes}</b>
+        </div>
+        <div class="ph-sub">Rango: <b>${escapeHtml(rango)}</b></div>
+      </div>
+      <div class="ph-right">
+        <div class="ph-sub">Impreso: <b>${escapeHtml(fechaImp)}</b></div>
+        <div class="ph-note">Página: ver pie de página del navegador</div>
+      </div>
+    </div>
   `;
 }
 
@@ -206,7 +247,7 @@ function renderTabla(matriz) {
       wrap.querySelectorAll(`[data-col="${idx}"]`)
         .forEach(el => el.classList.add("day-alt"));
     }
-});
+  });
 
   table.addEventListener("mouseover", (e) => {
     const cell = e.target.closest("[data-col]");
@@ -236,6 +277,8 @@ async function refrescarListaPacientes() {
 
 async function cargarPaciente(rut) {
   state.rut = rut;
+  const sel = $("selPaciente");
+  if (sel) sel.value = rut || "";
   if (rut) await guardarRutActual(rut);
 
   const data = await obtener(rut);
@@ -270,6 +313,7 @@ async function init() {
 
   $("selPaciente").addEventListener("change", async (e) => {
     const rut = e.target.value;
+     $("txtRut").value = rut || "";
     if (rut) await cargarPaciente(rut);
   });
 

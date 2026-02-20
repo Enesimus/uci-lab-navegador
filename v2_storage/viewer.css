@@ -2,11 +2,12 @@ body {
   font-family: system-ui, Arial, sans-serif; 
   margin: 0; 
   padding: 0 15px;
+  padding-top: 95px !important;
 }
 .topbar { 
   position: sticky; 
   top: 0; 
-  background: #fff; 
+  background: #ebd882ee; 
   border-bottom: 
   1px solid #ddd; 
   padding: 10px; 
@@ -107,16 +108,13 @@ body {
   font-size: 12px; 
 }
 
-@media print {
-  .topbar, .estado { display: none; }
-  .table-wrap { max-height: none; overflow: visible; }
-}
-
 .mini-info {
   font-size: 12px;
   margin-top: 6px;
   color: #444;
 }
+
+/* @page { size: landscape; } */
 
 /* Primera columna: ancho fijo + truncado elegante */
 .rowhead {
@@ -203,4 +201,66 @@ td.empty {
 .matrix td.day-start {
   border-left: 2px solid #bdbdbd;
 }
+
+@media print {
+
+  @page { 
+    /* size: landscape;  */
+    margin: 12mm; 
+  }
+
+  .matrix tbody tr:nth-child(even) td,
+  .matrix tbody tr:nth-child(even) th.rowhead {
+    background: #f2f2f2 !important;
+  }
+
+  .matrix th.last-col,
+  .matrix td.last-col {
+    font-weight: 600;
+  }
+
+  /* Oculta UI interactiva */
+  .topbar, .estado, details.filters { display: none !important; }
+
+  /* Encabezado de impresión */
+  .print-header {
+    display: block !important;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 12px;
+    z-index: 9999;
+  }
+  .ph-row { display: flex; gap: 12px; align-items: flex-start; }
+  .ph-left { flex: 1; }
+  .ph-right { width: 220px; text-align: right; }
+  .ph-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+  .ph-sub { font-size: 11px; color: #111; line-height: 1.25; }
+  .ph-note { font-size: 10px; color: #666; margin-top: 4px; }
+
+  /* Reserva espacio para que la tabla quede debajo del header */
+  body { padding-top: 78px !important; }
+
+  /* Quitar sticky/position en impresión para evitar “encabezado a mitad de página” */
+  .matrix thead th,
+  .corner,
+  .rowhead {
+    position: static !important;
+  }
+
+  /* Esto hace que el header de tabla se repita automáticamente en cada página */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* Evita que una fila se parta entre páginas */
+  .matrix tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* En impresión, el contenedor no debe “cortar” */
+  .table-wrap { max-height: none !important; overflow: visible !important; }
+
+  /* Si quieres conservar colores del zebra */
+  /* * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } */
+}
+
 
