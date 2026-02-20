@@ -1,0 +1,266 @@
+body { 
+  font-family: system-ui, Arial, sans-serif; 
+  margin: 0; 
+  padding: 0 15px;
+  padding-top: 95px !important;
+}
+.topbar { 
+  position: sticky; 
+  top: 0; 
+  background: #ebd882ee; 
+  border-bottom: 
+  1px solid #ddd; 
+  padding: 10px; 
+  z-index: 10; 
+}
+.row { 
+  display: flex; 
+  gap: 10px; 
+  align-items: end; 
+  flex-wrap: wrap; 
+}
+.group { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 4px; 
+}
+.actions { 
+  flex-direction: row; 
+  align-items: center; 
+  gap: 8px; 
+}
+.spacer { 
+  flex: 1; 
+}
+.info { 
+  margin-top: 8px; 
+}
+.chip { 
+  display: inline-block; 
+  padding: 4px 8px; 
+  border: 1px solid #ddd; 
+  border-radius: 999px; 
+  margin-right: 6px; 
+  font-size: 12px; 
+}
+.estado { 
+  padding: 10px; 
+}
+.estado.error { 
+  color: #b00020; 
+}
+.table-wrap { 
+  overflow: auto; 
+  max-height: calc(100vh - 180px); 
+  max-width: 1600px;
+  border-top: 1px solid #eee; 
+  padding: 0 5px;
+}
+.matrix {
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.2;
+}
+.matrix th, .matrix td {
+  padding: 4px 6px;
+  border: 1px solid #e5e5e5;
+  white-space: nowrap;
+}
+.matrix thead th { 
+  position: sticky; 
+  top: 0; 
+  z-index: 5; 
+  background: #fafafa;
+  font-weight: 600; 
+}
+.rowhead { 
+  position: sticky; 
+  left: 0; 
+  background: #fff; 
+  z-index: 4; 
+  text-align: left; 
+}
+.corner { 
+  position: sticky; 
+  top: 0; 
+  left: 0; 
+  z-index: 6; 
+  background: #fff; 
+}
+.colhead .h-fecha { 
+  font-weight: 600; 
+}
+.colhead .h-hora { 
+  opacity: .85; 
+}
+.colhead .h-orden { 
+  opacity: .7; 
+}
+.danger { 
+  border: 1px solid #b00020; 
+  color: #b00020; 
+}
+.chk { 
+  display: flex; 
+  gap: 6px; 
+  align-items: 
+  center; 
+  font-size: 12px; 
+}
+
+.mini-info {
+  font-size: 12px;
+  margin-top: 6px;
+  color: #444;
+}
+
+/* @page { size: landscape; } */
+
+/* Primera columna: ancho fijo + truncado elegante */
+.rowhead {
+  max-width: 220px;
+  width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Zebra suave */
+.matrix tbody tr:nth-child(even) td,
+.matrix tbody tr:nth-child(even) th.rowhead {
+  background: #fcfcfc;
+}
+
+/* Hover para seguir fila */
+.matrix tbody tr:hover td,
+.matrix tbody tr:hover th.rowhead {
+  background: #f3f7ff;
+}
+
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+td.empty {
+  color: #999;
+}
+
+/* Resaltar columna (cuando el JS pone .col-hover) */
+.matrix td.col-hover,
+.matrix th.col-hover {
+  background: #fff7e6 !important;
+}
+
+.matrix th.last-col,
+.matrix td.last-col {
+  background: #eef7ee !important;
+}
+
+/* 1) Engrosar marcos del encabezado (separación visual fuerte) */
+.matrix thead th {
+  border-bottom: 2px solid #bdbdbd; /* más grueso */
+}
+
+/* Línea vertical que separa Examen (fijo) del resto */
+.matrix thead th.corner,
+.matrix tbody th.rowhead {
+  border-right: 2px solid #bdbdbd;
+}
+
+/* (Opcional) también engrosar el borde inferior del corner */
+.matrix thead th.corner {
+  border-bottom: 2px solid #bdbdbd;
+}
+
+/* 2) Reducir tamaño del número de orden */
+.h-orden {
+  font-size: 11px;      /* baja 1–2 pts */
+  opacity: 0.75;        /* menos protagonismo */
+  margin-top: 2px;
+}
+
+/* 3) Aumentar contraste del zebra */
+.matrix tbody tr:nth-child(even) td,
+.matrix tbody tr:nth-child(even) th.rowhead {
+  background: #f4f4f4;  /* antes muy sutil; ahora más visible */
+}
+
+/* Mantener hover por encima del zebra */
+.matrix tbody tr:hover td,
+.matrix tbody tr:hover th.rowhead {
+  background: #eaf2ff;
+}
+
+/* Zebra vertical por día */
+.matrix th.day-alt,
+.matrix td.day-alt {
+  background: #f8f8f8;
+}
+/* Línea divisoria al comenzar un nuevo día */
+.matrix th.day-start,
+.matrix td.day-start {
+  border-left: 2px solid #bdbdbd;
+}
+
+@media print {
+
+  @page { 
+    /* size: landscape;  */
+    margin: 12mm; 
+  }
+
+  .matrix tbody tr:nth-child(even) td,
+  .matrix tbody tr:nth-child(even) th.rowhead {
+    background: #f2f2f2 !important;
+  }
+
+  .matrix th.last-col,
+  .matrix td.last-col {
+    font-weight: 600;
+  }
+
+  /* Oculta UI interactiva */
+  .topbar, .estado, details.filters { display: none !important; }
+
+  /* Encabezado de impresión */
+  .print-header {
+    display: block !important;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 12px;
+    z-index: 9999;
+  }
+  .ph-row { display: flex; gap: 12px; align-items: flex-start; }
+  .ph-left { flex: 1; }
+  .ph-right { width: 220px; text-align: right; }
+  .ph-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+  .ph-sub { font-size: 11px; color: #111; line-height: 1.25; }
+  .ph-note { font-size: 10px; color: #666; margin-top: 4px; }
+
+  /* Reserva espacio para que la tabla quede debajo del header */
+  body { padding-top: 78px !important; }
+
+  /* Quitar sticky/position en impresión para evitar “encabezado a mitad de página” */
+  .matrix thead th,
+  .corner,
+  .rowhead {
+    position: static !important;
+  }
+
+  /* Esto hace que el header de tabla se repita automáticamente en cada página */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* Evita que una fila se parta entre páginas */
+  .matrix tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* En impresión, el contenedor no debe “cortar” */
+  .table-wrap { max-height: none !important; overflow: visible !important; }
+
+  /* Si quieres conservar colores del zebra */
+  /* * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } */
+}
+
+

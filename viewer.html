@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UCI Lab Viewer</title>
+  <link rel="stylesheet" href="viewer.css" />
+</head>
+<body>
+  <div id="printHeader" class="print-header"></div>
+  <header class="topbar">
+    <div class="row">
+      <div class="group">
+        <label>Paciente</label>
+        <select id="selPaciente"></select>
+      </div>
+
+      <div class="group">
+        <label>RUT</label>
+        <input id="txtRut" placeholder="11222333-K" />
+        <button id="btnCargar">Cargar</button>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="group actions">
+        <button id="btnActualizar">Actualizar</button>
+        <button id="btnExportar">Exportar CSV</button>
+        <button id="btnImprimir">Imprimir</button>
+        <button id="btnBorrar" class="danger">Borrar</button>
+      </div>
+    </div>
+
+    <div class="row info" id="infoPaciente"></div>
+
+    <details class="filters">
+      <summary>Filtros</summary>
+      <div class="row">
+        <div class="group">
+          <label>Buscar examen</label>
+          <input id="txtBuscarExamen" placeholder="Na, PCR, Lactato..." />
+        </div>
+
+        <label class="chk">
+          <input type="checkbox" id="chkOcultarVacios" checked />
+          Ocultar filas vacías
+        </label>
+
+        <label class="chk">
+          <input type="checkbox" id="chkMostrarExtras" checked />
+          Mostrar exámenes extra
+        </label>
+      </div>
+    </details>
+  </header>
+
+  <main>
+    <div id="estado" class="estado"></div>
+    <div id="tablaWrap" class="table-wrap"></div>
+  </main>
+
+  <!-- libs existentes -->
+  <script src="exams.js"></script>
+  <script src="storage.js"></script>
+  <script src="matrix.js"></script>
+  <script src="export.js"></script>
+
+  <!-- UI -->
+  <script src="viewer.js"></script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+// popup.js (1.2.1 UX) — versión coherente con storage async + hash-based
+// Requiere (en popup.html): exams.js, storage.js, matrix.js, export.js, popup.js
+// - Alerts SOLO para errores
+// - Éxito por status no bloqueante
+// - Lee/escribe rut actual vía chrome.storage.local (storage.js)
+// - Upsert de órdenes por hash
+
+const $ = (id) => document.getElementById(id);
+
+// UI refs
+const elNombre = $("pacienteNombre");
+const elRut = $("pacienteRut");
+const elOrdenes = $("pacienteOrdenes");
+const elStatus = $("status");
+
+const btnExtraer = $("btnExtraer");
+const btnExportar = $("btnExportar");
+const btnVer = $("btnVer"); // aún disabled en html
+
+function setBusy(isBusy) {
+  if (btnExtraer) btnExtraer.disabled = isBusy;
+  if (btnExportar) btnExportar.disabled = isBusy;
+  // btnVer no depende de busy; depende de si hay rut válido
+}
+
+function setVerEnabled(rut) {
+  if (!btnVer) return;
+  const ok = !!(rut && String(rut).trim());
+  btnVer.disabled = !ok;
+  btnVer.title = ok ? "" : "Primero extrae o selecciona un paciente (RUT).";
+}
+
+function abrirViewer(rut) {
+  const r = (rut || "").trim();
+  if (!r) return;
+
+  const url = chrome.runtime.getURL(`viewer.html?rut=${encodeURIComponent(r)}`);
+  chrome.tabs.create({ url });
+}
+
+function showStatus(message, kind = "success", ms = 3000) {
+  if (!elStatus) return;
+
+  elStatus.textContent = message || "";
+  elStatus.classList.remove("success", "error", "warn");
+  if (kind) elStatus.classList.add(kind);
+
+  if (ms && message) {
+    window.clearTimeout(showStatus._t);
+    showStatus._t = window.setTimeout(() => {
+      elStatus.textContent = "";
+      elStatus.classList.remove("success", "error", "warn");
+    }, ms);
+  }
+}
+
+function renderPacienteVacio() {
+  if (elNombre) elNombre.textContent = "—";
+  if (elRut) elRut.textContent = "RUT: —";
+  if (elOrdenes) elOrdenes.textContent = "Órdenes: —";
+}
+
+function renderPacienteDesdeData(data, rutFallback = "") {
+  const nombre = data?.paciente?.nombre || "—";
+  const rut = data?.paciente?.rut || rutFallback || "—";
+  const total = data?.ordenes ? Object.keys(data.ordenes).length : 0;
+
+  if (elNombre) elNombre.textContent = nombre;
+  if (elRut) elRut.textContent = `RUT: ${rut}`;
+  if (elOrdenes) elOrdenes.textContent = `Órdenes: ${total}`;
+}
+
+// Lee storage y refresca cabecera
+async function refrescarPacienteDesdeRut(rut) {
+  const r = (rut || "").trim();
+  if (!r) {
+    renderPacienteVacio();
+    return;
+  }
+
+  try {
+    const data = await obtener(r);
+    if (!data) {
+      if (elNombre) elNombre.textContent = "—";
+      if (elRut) elRut.textContent = `RUT: ${r}`;
+      if (elOrdenes) elOrdenes.textContent = "Órdenes: 0";
+      return;
+    }
+    renderPacienteDesdeData(data, r);
+  } catch (e) {
+    console.warn("No se pudo leer paciente desde storage:", e);
+    renderPacienteVacio();
+  }
+}
+
+/**
+ * Upsert hash-based:
+ * data = { paciente, ordenes: { [hash]: {hash, orden, ordenOriginal, timestamp, fechaExtraccion, registros } } }
+ *
+ * Compatible con matrix.js (usa contenido.timestamp/fechaExtraccion/registros + label orden/ordenOriginal/hash)
+ */
+async function upsertOrdenDesdeContexto(contexto) {
+  const paciente = contexto?.paciente;
+  const rut = (paciente?.rut || "").trim();
+  if (!rut) throw new Error("Contexto sin RUT.");
+
+  const hash = String(contexto?.hash || "").trim();
+  if (!hash) throw new Error("Contexto sin hash (ID estable).");
+
+  // Intentar mantener compatibilidad con extractor: orden numérica + ordenOriginal + timestamp
+  const orden = (contexto?.orden != null) ? String(contexto.orden).trim() : "";
+  const ordenOriginal = (contexto?.ordenOriginal != null) ? String(contexto.ordenOriginal).trim() : "";
+  const timestamp = (contexto?.timestamp != null) ? String(contexto.timestamp).trim() : null;
+
+  const registros = Array.isArray(contexto?.registros) ? contexto.registros : [];
+  if (!registros.length) throw new Error("Orden sin registros.");
+
+  // Leer data actual
+  const actual = (await obtener(rut)) || { paciente: paciente, ordenes: {} };
+
+  // Mantener paciente más reciente (por si cambian nombres/formatos)
+  actual.paciente = paciente || actual.paciente || { rut, nombre: "" };
+  if (!actual.ordenes) actual.ordenes = {};
+
+  // Upsert
+  actual.ordenes[hash] = {
+    hash,
+    orden: orden || undefined,               // opcional
+    ordenOriginal: ordenOriginal || undefined,
+    timestamp: timestamp || undefined,
+    fechaExtraccion: new Date().toISOString(),
+    registros
+  };
+
+  await guardar(rut, actual);
+
+  // Guardar rut actual
+  await guardarRutActual(rut);
+  setVerEnabled(rut);
+  return { rut, totalOrdenes: Object.keys(actual.ordenes).length };
+}
+
+async function extraerOrdenActiva() {
+  setBusy(true);
+  showStatus("Extrayendo orden…", "warn", 0);
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs?.[0];
+    if (!tab?.id) {
+      setBusy(false);
+      showStatus("No se pudo acceder a la pestaña activa.", "error");
+      alert("Error: no se pudo acceder a la pestaña activa.");
+      return;
+    }
+
+    chrome.tabs.sendMessage(tab.id, { action: "extraerOrden" }, async (response) => {
+      const lastErr = chrome.runtime?.lastError;
+      if (lastErr) {
+        setBusy(false);
+        console.warn("sendMessage error:", lastErr.message);
+        showStatus("No se pudo extraer (página no compatible o sin informe abierto).", "error");
+        alert("No se pudo extraer la orden.\nVerifica que estás en el HIS y con el informe abierto.");
+        return;
+      }
+
+      if (!response || !response.ok) {
+        setBusy(false);
+        showStatus("No se pudo extraer la orden.", "error");
+        alert("Error al extraer orden");
+        return;
+      }
+
+      const contexto = response.contexto;
+
+      try {
+        const { rut, totalOrdenes } = await upsertOrdenDesdeContexto(contexto);
+        await refrescarPacienteDesdeRut(rut);
+
+        setBusy(false);
+        showStatus(`✔ Orden guardada. Total: ${totalOrdenes}`, "success");
+      } catch (e) {
+        console.error("Error guardando orden:", e);
+        setBusy(false);
+        showStatus("Error al guardar la orden.", "error");
+        alert(`Error: no se pudo guardar la orden.\n${e?.message || e}`);
+      }
+    });
+  });
+}
+
+async function exportarCSV() {
+  setBusy(true);
+
+  try {
+    let rut = await obtenerRutActual();
+
+    if (!rut) {
+      setBusy(false);
+      showStatus("Ingresa el RUT del paciente para exportar.", "warn");
+      rut = prompt("Ingrese RUT del paciente (ej: 28364311-5):");
+      if (!rut) return;
+      rut = rut.trim();
+      await guardarRutActual(rut);
+      setBusy(true);
+    }
+
+    // exportarPacienteCSV es async en export.js 
+    await exportarPacienteCSV(rut);
+
+    await refrescarPacienteDesdeRut(rut);
+    setBusy(false);
+    showStatus("✔ CSV generado.", "success");
+  } catch (e) {
+    console.error("Error exportando CSV:", e);
+    setBusy(false);
+    showStatus("Error al exportar CSV.", "error");
+    alert("Error al exportar CSV");
+  }
+}
+
+// ==== Init ====
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const rut = await obtenerRutActual();
+    await refrescarPacienteDesdeRut(rut);
+    setVerEnabled(rut);
+  } catch (e) {
+    console.warn("No se pudo inicializar cabecera del popup:", e);
+    renderPacienteVacio();
+  }
+
+  btnVer?.addEventListener("click", async () => {
+    const r = await obtenerRutActual();
+    if (!r) {
+      alert("No hay paciente seleccionado. Extrae una orden primero.");
+      return;
+    }
+    abrirViewer(r);
+  });
+
+  btnExtraer?.addEventListener("click", () => {
+    // evitamos doble click ansioso
+    if (btnExtraer.disabled) return;
+    extraerOrdenActiva();
+  });
+
+  btnExportar?.addEventListener("click", () => {
+    if (btnExportar.disabled) return;
+    exportarCSV();
+  });
+});
