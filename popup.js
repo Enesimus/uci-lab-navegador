@@ -1,3 +1,10 @@
+/*
+UCI Lab Extractor
+Copyright (C) 2026 Juan Sepúlveda Sepúlveda
+
+Licensed under the GNU General Public License v3.0
+*/
+
 // popup.js (1.2.1 UX) — versión coherente con storage async + hash-based
 // Requiere (en popup.html): exams.js, storage.js, matrix.js, export.js, popup.js
 // - Alerts SOLO para errores

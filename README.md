@@ -1,5 +1,31 @@
 # UCI Lab Extractor – Documentación del Proyecto
 
+![GPL v3 License badge showing blue background with white text](https://img.shields.io/badge/License-GPLv3-blue.svg)
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+Author: Juan Sepúlveda Sepúlveda
+Year: 2026  
+
+This software was developed as an independent clinical-academic initiative for longitudinal visualization of pediatric ICU laboratory data.
+
+Commercial integration into proprietary laboratory information systems (LIS) or redistribution as part of closed-source software requires explicit authorization from the author.
+
+---
+
+Este proyecto está licenciado bajo la GNU General Public License v3.0 (GPL-3.0)
+
+Autor: Juan Sepúlveda Sepúlveda
+Año: 2026
+
+Este software fue desarrollado como una iniciativa clínica-académica para la visualización longitudinal de los datos de laboratorio de una UCI Pediátrica.
+
+La integración comercial en Sistemas de Información de Laboratorio (LIS) o su redistribución como parte de software de fuente cerrada requiere la autorización explícita del autor.
+
+---
+
 ## 1. Descripción General
 
 UCI Lab Extractor es una extensión de Chrome diseñada para:
@@ -180,7 +206,7 @@ Subclave: <hash>
 - Inserción de fila HASH
 - Generación CSV
 
->💡 **Nota**: los permisos de acceso en el ```manifest.json``` para intranet como en acceso externo son:
+<!-- >💡 **Nota**: los permisos de acceso en el ```manifest.json``` para intranet como en acceso externo son:
 >
 > ``` JSON
 >"host_permissions": [
@@ -196,5 +222,18 @@ Subclave: <hash>
 >    "js": ["content.js"]
 >  }
 >]
->```
+>``` -->
 
+## Disclaimer
+
+This tool does not modify or interfere with any laboratory information system. It operates exclusively at the user interface level and stores data locally.
+
+The author assumes no responsibility for clinical decisions derived from its use.
+
+---
+
+Esta herramienta no modifica ni interfiere con ningún sistema de información de laboratorio. Opera exclusivamente en el nivel de interfase de usuario y almacena datos localmente.
+
+El autor no se responsabiliza por decisiones clínicas derivadas de su uso.
+
+---

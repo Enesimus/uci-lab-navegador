@@ -1,6 +1,11 @@
-// storage.js
+/*
+UCI Lab Extractor
+Copyright (C) 2026 Juan Sepúlveda Sepúlveda
 
-// Persistencia en chrome.storage.local
+Licensed under the GNU General Public License v3.0
+*/
+
+// storage.js
 
 const KEY_RUT_ACTUAL = "UCI_RUT_ACTUAL";
 

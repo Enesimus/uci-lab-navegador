@@ -1,21 +1,12 @@
+/*
+UCI Lab Extractor
+Copyright (C) 2026 Juan Sepúlveda Sepúlveda
+
+Licensed under the GNU General Public License v3.0
+*/
+
 // viewer.js — tabla (matriz clínica) + filtros básicos
 // Requiere: exams.js, storage.js (async), matrix.js (async), export.js
-
-// function formatearFechaClinica(timestamp) {
-//   if (!timestamp) return "";
-
-//   // Esperamos formato "YYYY-MM-DD HH:MM(:SS)?"
-//   const [fecha, hora] = String(timestamp).split(" ");
-
-//   if (!fecha) return timestamp;
-
-//   const partes = fecha.split("-");
-//   if (partes.length !== 3) return timestamp;
-
-//   const [yyyy, mm, dd] = partes;
-
-//   return `${dd}-${mm}-${yyyy}` + (hora ? ` ${hora.slice(0,5)}` : "");
-// }
 
 const $ = (id) => document.getElementById(id);
 
@@ -74,7 +65,6 @@ function formatearHeader(timestamp, orden) {
     orden: orden || ""
   };
 }
-
 
 function aplicarFiltros(matriz) {
   if (!matriz) return null;
@@ -195,6 +185,23 @@ function renderTabla(matriz) {
           const v = row[c.timestamp];
           const txt = v === undefined || v === null ? "" : String(v).trim();
           let cls = "";
+
+          // Marcadores especiales (render distinto)
+          if (txt === "__ORINA_MODAL__") {
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="orina" data-ts="${escapeHtml(c.timestamp)}">Ver</button>
+              </td>`;
+          }
+
+          if (txt.startsWith("__CULTIVO_MODAL__::")) {
+            const estudioKey = txt.slice("__CULTIVO_MODAL__::".length);
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="cultivo" data-ts="${escapeHtml(c.timestamp)}" data-est="${escapeHtml(estudioKey)}">Ver</button>
+              </td>`;
+          }
+
           if(!txt) cls = "empty";
           else if (!Number.isNaN(Number(txt.replace(",", ".")))) cls = "num";
           return `<td class="${cls}" data-col="${idx}">${escapeHtml(txt)}</td>`;
@@ -216,6 +223,17 @@ function renderTabla(matriz) {
       <tbody>${rowsHtml}</tbody>
     </table>
   `;
+
+  // estilos mínimos para botones dentro de celdas
+  if (!document.getElementById("viewer-inline-btn-style")) {
+    const st = document.createElement("style");
+    st.id = "viewer-inline-btn-style";
+    st.textContent = `
+      .btn-mini{font-size:12px;padding:3px 8px;border:1px solid #bbb;border-radius:10px;background:#fff;cursor:pointer}
+      .btn-mini:hover{border-color:#888}
+    `;
+    document.head.appendChild(st);
+  }
   const lastIdx = cols.length - 1;
   wrap.querySelectorAll(`[data-col="${lastIdx}"]`).forEach(el => el.classList.add("last-col"));
 
@@ -261,6 +279,21 @@ function renderTabla(matriz) {
     if (!cell) return;
     const idx = cell.getAttribute("data-col");
     table.querySelectorAll(`[data-col="${idx}"]`).forEach(el => el.classList.remove("col-hover"));
+  });
+
+  // Acciones (modal de especiales)
+  table.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const action = btn.getAttribute("data-action");
+    const ts = btn.getAttribute("data-ts");
+    if (action === "orina") {
+      openOrinaModal(ts);
+    }
+    if (action === "cultivo") {
+      const est = btn.getAttribute("data-est") || "";
+      openCultivoModal(ts, est);
+    }
   });
 }
 

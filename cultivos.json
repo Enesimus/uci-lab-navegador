@@ -1,0 +1,93 @@
+{
+    "UROCULTIVO":
+        {
+            "TIPO DE MUESTRA": "Muestra",
+            "UROCULTIVO": "Resultado"
+        },
+    
+    "CULTIVO SECRECION":
+        {
+            "CULTIVO SECRECION":"Cultivo",
+            "TIPO DE MUESTRA":"Tipo",
+            "TINCION DE GRAM":"Gram",
+            "AISLADO N°1":"Aislado"
+        },
+    
+    "HEMOCULTIVO PEDIATRICO 1":
+        {
+            "HEMOCULTIVO PEDIATRICO 1":"Hemocultivo 1",
+            "TIPO DE MUESTRA":"Tipo",
+            "TINCION DE GRAM":"Gram",
+            "AISLADO HEMOCULTIVO I":"Aislado",
+            "COMENTARIO DEL TEST":"Comentario"
+        },
+    
+    "CULTIVO DE LIQUIDOS":
+        {
+            "CULTIVO DE LIQUIDOS":"Cultivo",
+            "TIPO DE MUESTRA":"Tipo",
+            "TINCION DE GRAM":"Gram",
+            "AISLADO":"Aislado",
+        }
+}
+
+1. Urocultivo
+
+Estudio = Urocultivo
+    Prueba = Tipo de Muestra
+    Prueba = Urocultivo --> Resultado
+
+2. Cultivo de Secreción
+
+Estudio = Cultivo Secrecion
+    Prueba  = Cultivo Secrecion --> Positivo || vacío (si vacío con estado disponible  = No hubo desarrollo microbiano)
+    Prueba = Tipo de muestra
+    Prueba = Tincion de gram
+    Prueba = Aislado --> String complejo
+        Microorganismo : nombre
+        Recuento de colonias:
+        Antibiotico: CIM Estado de resistencia
+    Prueba = Comentario del Test
+
+3. Cultivo de Liquidos
+
+Estudio = Cultivo de Liquidos
+    Prueba = Cultivo de Líquidos --> Positivo || vacío (si vacío con estado disponible  = No hubo desarrollo microbiano)
+    Prueba = Tipo de muestra
+    Prueba = Tincion de gram
+    Prueba = Aislado --> String complejo
+        Microorganismo : nombre
+        Recuento de colonias:
+        Antibiotico: CIM Estado de resistencia
+    Prueba = Comentario del Test
+
+4. Hemocultivos
+
+Estudio = HEMOCULTIVO PEDIATRICO 1:
+    Prueba =  Hemocultivo pediatrico 1
+    Prueba = Tipo de muestra
+    Prueba = Tincion de gram
+    Prueba = Aislado
+    Prueba = Comentario
+
+String complejo de resultado de cultivos
+
+Microorganismo: Pseudomonas aeruginosa
+Recuento de Colonias: > a 1.000.000 UFC/ml 
+Cefepima: C.I.M. >16 Resistente 
+Ceftazidima: C.I.M. >16 Resistente 
+Ceftazidima/Avibactam: C.I.M. 4/4 Sensible 
+Ciprofloxacino: C.I.M. <=0.125 Sensible 
+Colistina: C.I.M. <=1 Sensible 
+Imipenem: C.I.M. 2 Sensible
+Meropenem: C.I.M. <=0.5 Sensible
+Piperacilina-Tazobactam: C.I.M. >64/4 Resistente
+
+Componentes:
+Microorganismo (en general >= 2 palabras, resultado inicia despues de :)
+Recuento de Colonias (Puede no estar, fin de seccion "UFC/ml")
+Antibiograma
+    Antibiotico 
+    CIM "C.I.M. [comparador][numero]" 
+    Status "Sensible" || "Resistente"
+

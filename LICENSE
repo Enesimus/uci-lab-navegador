@@ -1,0 +1,25 @@
+# UCI Lab Extractor
+
+Extracción y estructuración longitudinal de exámenes clínicos UCI
+
+Copyright (C) 2026 Juan Sepúlveda Sepúlveda
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+particularly for clinical visualization and academic development,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+
+Additional Clarification:
+
+This software was developed as an independent clinical-academic project.
+Any commercial integration, redistribution as part of proprietary systems,
+or incorporation into closed-source laboratory information systems (LIS)
+requires explicit authorization from the author.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/gpl-3.0.html>.
