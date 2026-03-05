@@ -135,11 +135,79 @@ Licensed under the GNU General Public License v3.0
     return /\bAISLADO\b/i.test(String(prueba || ""));
   }
 
+  // Parse de "TINCION DE GRAM" (Obs: ...)
+  // Heurística: separa por frases de cantidad típicas del LIS.
+  function parseGramObservaciones(raw) {
+    let text = cleanText(raw);
+    text = text.replace(/^Obs:\s*/i, "").trim();
+    if (!text) return [];
+
+    const frases = [
+      "NO SE OBSERVAN",
+      "NO SE OBSERVA",
+      "ESCASA CANTIDAD",
+      "REGULAR CANTIDAD",
+      "MODERADA CANTIDAD",
+      "ABUNDANTE CANTIDAD",
+      "ESCASOS",
+      "ESCASAS"
+    ];
+
+    // Ordenar de mayor a menor para evitar matchs parciales
+    const frasesSorted = frases.sort((a, b) => b.length - a.length);
+    const re = new RegExp(`\\b(${frasesSorted.map(f => f.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")).join("|")})\\b`, "gi");
+
+    const out = [];
+    let lastIdx = 0;
+    let m;
+
+    while ((m = re.exec(text)) !== null) {
+      const frase = cleanText(m[0]);
+      const before = cleanText(text.slice(lastIdx, m.index));
+      if (before) out.push({ item: before, cantidad: frase });
+      lastIdx = re.lastIndex;
+    }
+
+    const tail = cleanText(text.slice(lastIdx));
+    if (tail) {
+      // Si quedó cola sin "cantidad", la dejamos como item libre
+      out.push({ item: tail, cantidad: null });
+    }
+
+    // Limpieza: si un item quedó solo con "BACTERIAS" y cantidad NO SE OBSERVA(N), igual sirve
+    return out;
+  }
+
+  function cleanTipoMuestra(raw) {
+    const t = cleanText(raw);
+    if (!t) return "";
+    // quitar paréntesis tipo "(CUANTITATIVO)"
+    return t.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function buildDisplayName(estudioKey, tipoMuestra) {
+    const e = normKey(estudioKey);
+    const tm = cleanTipoMuestra(tipoMuestra);
+    if (!tm) return cleanText(estudioKey);
+
+    // CULTIVO SECRECION: queremos "CULTIVO " + "SECRECION ENDOTRAQUEAL"
+    if (e.includes("CULTIVO SECRECION")) return `CULTIVO ${tm}`;
+
+    // CULTIVO DE LIQUIDOS: "CULTIVO " + "LIQUIDO CEFALORRAQUIDEO"
+    if (e.includes("CULTIVO DE LIQUIDOS")) return `CULTIVO ${tm}`;
+
+    return cleanText(estudioKey);
+  }
+
+
   // export
   window.Cultures = {
     cleanText,
     parseAislado,
     parseReferenciaAntibiograma,
-    isAisladoPrueba
-  };
+    isAisladoPrueba,
+    parseGramObservaciones,
+    cleanTipoMuestra,
+    buildDisplayName
+};
 })();

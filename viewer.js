@@ -1,12 +1,21 @@
-/*
-UCI Lab Extractor
-Copyright (C) 2026 Juan Sepúlveda Sepúlveda
-
-Licensed under the GNU General Public License v3.0
-*/
-
 // viewer.js — tabla (matriz clínica) + filtros básicos
 // Requiere: exams.js, storage.js (async), matrix.js (async), export.js
+
+// function formatearFechaClinica(timestamp) {
+//   if (!timestamp) return "";
+
+//   // Esperamos formato "YYYY-MM-DD HH:MM(:SS)?"
+//   const [fecha, hora] = String(timestamp).split(" ");
+
+//   if (!fecha) return timestamp;
+
+//   const partes = fecha.split("-");
+//   if (partes.length !== 3) return timestamp;
+
+//   const [yyyy, mm, dd] = partes;
+
+//   return `${dd}-${mm}-${yyyy}` + (hora ? ` ${hora.slice(0,5)}` : "");
+// }
 
 const $ = (id) => document.getElementById(id);
 
@@ -15,8 +24,265 @@ const state = {
   matriz: null,
   buscar: "",
   ocultarVacios: true,
-  mostrarExtras: true
+  mostrarExtras: true,
+
+  // UI: modal de exámenes especiales
+  modalMostrarTodo: false
 };
+
+// --- Exámenes especiales (paneles) ---
+// Nota: estos paneles deben venir desde matrix.js como matriz.paneles.{tipo}[timestamp]
+// Ejemplo esperado para orina:
+// matriz.paneles.orina[timestamp] = {
+//   fisico: { "PH": [{valor:"6" , significativo:false}] , ... },
+//   micro:  { "CRISTALES": [{valor:"...", significativo:false}, ...], ... },
+//   meta: { fechaValidacion: "YYYY-MM-DD HH:MM" }
+// }
+
+const ORINA_SIEMPRE = new Set([
+  "PH",
+  "DENSIDAD ESPECIFICA"
+]);
+
+function getDialog() {
+  let dlg = document.getElementById("dlgEspecial");
+  if (dlg) return dlg;
+
+  dlg = document.createElement("dialog");
+  dlg.id = "dlgEspecial";
+  dlg.innerHTML = `
+    <form method="dialog" class="dlg-form">
+      <div class="dlg-head">
+        <div>
+          <div id="dlgTitulo" class="dlg-title"></div>
+          <div id="dlgSub" class="dlg-sub"></div>
+        </div>
+        <button value="cancel" class="dlg-close" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="dlg-toolbar">
+        <label class="dlg-toggle">
+          <input type="checkbox" id="dlgMostrarTodo" />
+          Mostrar todos los ítems
+        </label>
+      </div>
+      <div id="dlgBody" class="dlg-body"></div>
+      <div class="dlg-foot">
+        <button value="cancel">Cerrar</button>
+      </div>
+    </form>
+  `;
+
+  // estilos mínimos inline (evita depender de CSS externo)
+  const style = document.createElement("style");
+  style.textContent = `
+    dialog#dlgEspecial{max-width:min(900px,96vw);width:96vw;border:1px solid #ccc;border-radius:12px;padding:0}
+    dialog#dlgEspecial::backdrop{background:rgba(0,0,0,.25)}
+    #dlgEspecial .dlg-form{margin:0}
+    #dlgEspecial .dlg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #ddd}
+    #dlgEspecial .dlg-title{font-weight:700;font-size:16px}
+    #dlgEspecial .dlg-sub{opacity:.8;font-size:12px;margin-top:2px}
+    #dlgEspecial .dlg-close{border:0;background:transparent;font-size:16px;cursor:pointer;padding:4px 6px}
+    #dlgEspecial .dlg-toolbar{display:flex;align-items:center;justify-content:flex-start;padding:10px 14px;border-bottom:1px solid #eee}
+    #dlgEspecial .dlg-toggle{font-size:13px;user-select:none}
+    #dlgEspecial .dlg-body{padding:12px 14px;max-height:min(70vh,680px);overflow:auto}
+    #dlgEspecial .dlg-foot{display:flex;justify-content:flex-end;gap:10px;padding:10px 14px;border-top:1px solid #eee}
+    #dlgEspecial .sec{margin-bottom:14px}
+    #dlgEspecial .sec h4{margin:0 0 8px 0;font-size:13px;text-transform:uppercase;letter-spacing:.04em;opacity:.85}
+    #dlgEspecial .grid{display:grid;grid-template-columns: 1fr 1fr;gap:8px 14px}
+    #dlgEspecial .item{display:flex;gap:8px;align-items:flex-start}
+    #dlgEspecial .k{min-width:180px;max-width:280px;font-size:13px}
+    #dlgEspecial .k.sig{font-weight:700}
+    #dlgEspecial .v{font-size:13px;white-space:pre-wrap}
+    @media (max-width:720px){#dlgEspecial .grid{grid-template-columns:1fr} #dlgEspecial .k{min-width:0}}
+  `;
+
+  document.head.appendChild(style);
+  document.body.appendChild(dlg);
+
+  // binding
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+  chk.addEventListener("change", () => {
+    state.modalMostrarTodo = !!chk.checked;
+    // re-render con lo último abierto
+    if (state._lastModal && state.matriz) {
+      if (state._lastModal.tipo === "ORINA") openOrinaModal(state._lastModal.timestamp);
+      if (state._lastModal.tipo === "CULTIVO") openCultivoModal(state._lastModal.timestamp, state._lastModal.estudioKey);
+    }
+  });
+
+  return dlg;
+}
+
+function escapeTxt(s) {
+  return escapeHtml(s ?? "");
+}
+
+function buildSectionHtml(section, mostrarTodo) {
+  // section puede venir como:
+  //  A) { "PRUEBA": ["valor", "valor2"], ... } (implementación actual en matrix.js)
+  //  B) { "PRUEBA": [{valor:"..", significativo:false}, ...], ... } (formato antiguo)
+  const keys = Object.keys(section || {});
+  if (!keys.length) return "<div class=\"dlg-sub\">(Sin datos)</div>";
+
+  const rows = [];
+
+  keys.sort((a,b) => String(a).localeCompare(String(b), "es"));
+  for (const k of keys) {
+    const arr = section[k] || [];
+    // decide si mostrar
+    const tieneSig = arr.some(x => (x && typeof x === "object") ? !!x.significativo : false);
+    const mostrar = mostrarTodo || tieneSig || ORINA_SIEMPRE.has(String(k).toUpperCase());
+    if (!mostrar) continue;
+
+    const valores = arr
+      .map(x => (x && typeof x === "object" && "valor" in x) ? x.valor : x)
+      .filter(v => v !== undefined && v !== null && String(v).trim() !== "");
+    if (!valores.length) continue;
+
+    const vHtml = valores.length === 1
+      ? escapeTxt(valores[0])
+      : "<ul style=\"margin:0;padding-left:18px\">" + valores.map(v => `<li>${escapeTxt(v)}</li>`).join("") + "</ul>";
+
+    const kCls = "k" + (tieneSig ? " sig" : "");
+    rows.push(`<div class=\"item\"><div class=\"${kCls}\">${escapeTxt(k)}</div><div class=\"v\">${vHtml}</div></div>`);
+  }
+
+  if (!rows.length) return "<div class=\"dlg-sub\">(Nada que mostrar con el filtro actual)</div>";
+  return `<div class=\"grid\">${rows.join("")}</div>`;
+}
+
+function openOrinaModal(timestamp) {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.orina?.[timestamp];
+  if (!panel) {
+    setEstado("No hay panel de ORINA para esta fecha (falta generar paneles en matrix.js)", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "ORINA", timestamp };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+
+  titulo.textContent = "Orina completa";
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp) ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}` : "";
+  chk.checked = !!state.modalMostrarTodo;
+
+  const fisicoHtml = buildSectionHtml(panel.fisico, state.modalMostrarTodo);
+  const microHtml = buildSectionHtml(panel.micro, state.modalMostrarTodo);
+
+  body.innerHTML = `
+    <div class="sec">
+      <h4>Físico-químico</h4>
+      ${fisicoHtml}
+    </div>
+    <div class="sec">
+      <h4>Microscópico / morfológico</h4>
+      ${microHtml}
+    </div>
+  `;
+
+  if (!dlg.open) dlg.showModal();
+}
+
+// ===== CULTIVOS (modal) =====
+function buildCultivoHtml(panel) {
+  const esc = escapeTxt;
+
+  const chips = [];
+  if (panel?.resultadoGlobal) chips.push(`<span class="chip">Resultado: <b>${esc(panel.resultadoGlobal)}</b></span>`);
+  if (panel?.tipoMuestra) chips.push(`<span class="chip">Muestra: <b>${esc(panel.tipoMuestra)}</b></span>`);
+  if (panel?.gram) chips.push(`<span class="chip">Gram: <b>${esc(panel.gram)}</b></span>`);
+
+  const comentarios = (panel?.comentarios || []).filter(Boolean);
+  const ref = panel?.refAntibiograma;
+
+  const aislados = panel?.aislados || [];
+  const aisladosHtml = aislados.length
+    ? aislados.map((a) => {
+        const micro = a?.microorganismo ? esc(a.microorganismo) : "(sin microorganismo)";
+        const rec = a?.recuento ? `<div class="dlg-sub">Recuento: <b>${esc(a.recuento)}</b></div>` : "";
+
+        const atb = a?.antibioticos || [];
+        const atbHtml = atb.length
+          ? `
+            <table style="width:100%;border-collapse:collapse;margin-top:8px">
+              <thead>
+                <tr>
+                  <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">ATB</th>
+                  <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">CIM</th>
+                  <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">Interp</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${atb.map(x => `
+                  <tr>
+                    <td style="padding:4px">${esc(x.antibiotico || "")}</td>
+                    <td style="padding:4px">${esc(x.cim || "")}</td>
+                    <td style="padding:4px">${esc(x.interp || "")}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `
+          : "";
+
+        return `
+          <div class="sec">
+            <h4>${esc(a?.label || "Aislado")}</h4>
+            <div class="dlg-title" style="font-size:14px">${micro}</div>
+            ${rec}
+            ${atbHtml}
+          </div>
+        `;
+      }).join("")
+    : `<div class="dlg-sub">(Sin aislados informados)</div>`;
+
+  const comentariosHtml = comentarios.length
+    ? `<div class="sec"><h4>Comentarios</h4><div class="v">${comentarios.map(c => `<div style="margin-bottom:6px">${esc(c)}</div>`).join("")}</div></div>`
+    : "";
+
+  const refHtml = ref
+    ? `<div class="sec"><h4>Referencia</h4><div class="v">Antibiograma igual que <b>${esc(ref.tipo)} ${esc(ref.n)}</b></div></div>`
+    : "";
+
+  return `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      ${chips.join("")}
+    </div>
+    ${refHtml}
+    ${comentariosHtml}
+    ${aisladosHtml}
+  `;
+}
+
+function openCultivoModal(timestamp, estudioKey) {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.cultivos?.[timestamp]?.[estudioKey];
+  if (!panel) {
+    setEstado("No hay panel de CULTIVO para esta fecha/estudio (falta generar paneles en matrix.js)", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "CULTIVO", timestamp, estudioKey };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+
+  titulo.textContent = estudioKey;
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp) ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}` : "";
+  chk.checked = !!state.modalMostrarTodo;
+
+  body.innerHTML = buildCultivoHtml(panel);
+
+  if (!dlg.open) dlg.showModal();
+}
 
 function parseRutFromUrl() {
   const params = new URLSearchParams(location.search);

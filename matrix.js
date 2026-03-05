@@ -150,11 +150,47 @@ async function construirMatrizClinica(rut) {
 
   ordenBaseFilas.forEach(ex => { filas[ex] = {}; });
 
-  function getCultivoPanel(timestamp, estudioKey) {
+  function resolveCultivoKey(timestamp, baseKey) {
+    const bucket = paneles.cultivos[timestamp] || {};
+    const keys = Object.keys(bucket).filter(k => k === baseKey || k.startsWith(baseKey + "::"));
+    if (keys.length === 1) return keys[0];
+    return baseKey;
+  }
+
+  function cleanTipoMuestraLocal(raw) {
+    const t = String(raw || "").replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim();
+    if (!t) return "";
+    return t.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function buildCultivoPanelKey(baseKey, tipoMuestra) {
+    const b = normTxt(baseKey);
+    const tm = (C && typeof C.cleanTipoMuestra === "function") ? C.cleanTipoMuestra(tipoMuestra) : cleanTipoMuestraLocal(tipoMuestra);
+    if (!tm) return baseKey;
+    if (b.includes("CULTIVO SECRECION")) return `${baseKey}::${tm}`;
+    if (b.includes("CULTIVO DE LIQUIDOS")) return `${baseKey}::${tm}`;
+    return baseKey;
+  }
+
+  function buildCultivoDisplayName(baseKey, tipoMuestra) {
+    if (C && typeof C.buildDisplayName === "function") return C.buildDisplayName(baseKey, tipoMuestra);
+    const tm = cleanTipoMuestraLocal(tipoMuestra);
+    const b = normTxt(baseKey);
+    if (!tm) return String(baseKey || "").trim();
+    if (b.includes("CULTIVO SECRECION")) return `CULTIVO ${tm}`;
+    if (b.includes("CULTIVO DE LIQUIDOS")) return `CULTIVO ${tm}`;
+    return String(baseKey || "").trim();
+  }
+
+  function getCultivoPanel(timestamp, panelKey, baseKey) {
     if (!paneles.cultivos[timestamp]) paneles.cultivos[timestamp] = {};
-    if (!paneles.cultivos[timestamp][estudioKey]) {
-      paneles.cultivos[timestamp][estudioKey] = {
-        estudio: estudioKey,
+    if (!paneles.cultivos[timestamp][panelKey]) {
+      paneles.cultivos[timestamp][panelKey] = {
+        estudio: panelKey,
+        estudioBase: baseKey || panelKey,
+        gramRaw: null,
+        gramObs: null,
+        displayName: null,
         resultadoGlobal: null,
         tipoMuestra: null,
         gram: null,
@@ -164,7 +200,7 @@ async function construirMatrizClinica(rut) {
         meta: { fechaValidacion: timestamp }
       };
     }
-    return paneles.cultivos[timestamp][estudioKey];
+    return paneles.cultivos[timestamp][panelKey];
   }
 
   columnas.forEach(col => {
@@ -220,17 +256,38 @@ async function construirMatrizClinica(rut) {
 
       // ===== CULTIVOS (panel) =====
       if (esEstudioCultivo(estudioUp)) {
-        const estudioKey = normalizarClaveEstudio(estudioRaw) || estudioUp;
-        const panel = getCultivoPanel(timestamp, estudioKey);
+        const baseKey = normalizarClaveEstudio(estudioRaw) || estudioUp;
+        let panelKey = resolveCultivoKey(timestamp, baseKey);
+        let panel = getCultivoPanel(timestamp, panelKey, baseKey);
 
         // Resultado global: normalmente la prueba igual al estudio
         if (pruebaUp === normTxt(estudioKey) || pruebaUp === estudioUp) {
           // Puede ser vacío (negativo/no informado) — igual se guarda
           panel.resultadoGlobal = (valor != null) ? String(valor).trim() : panel.resultadoGlobal;
         } else if (esPruebaTipoMuestra(pruebaUp)) {
-          panel.tipoMuestra = (valor != null) ? String(valor).trim() : panel.tipoMuestra;
+          const tmRaw = (valor != null) ? String(valor).trim() : "";
+          const desiredKey = buildCultivoPanelKey(baseKey, tmRaw);
+          if (desiredKey !== panelKey) {
+            // Migrar panel si existía bajo baseKey / panelKey antiguo
+            if (!paneles.cultivos[timestamp][desiredKey]) {
+              paneles.cultivos[timestamp][desiredKey] = panel;
+              delete paneles.cultivos[timestamp][panelKey];
+            }
+            panelKey = desiredKey;
+            panel = paneles.cultivos[timestamp][panelKey];
+            panel.estudio = panelKey;
+          }
+          panel.tipoMuestra = tmRaw || panel.tipoMuestra;
+          panel.displayName = buildCultivoDisplayName(baseKey, panel.tipoMuestra);
         } else if (esPruebaGram(pruebaUp)) {
-          panel.gram = (valor != null) ? String(valor).trim() : panel.gram;
+          const gRaw = (valor != null) ? String(valor).trim() : "";
+          panel.gramRaw = gRaw || panel.gramRaw;
+          if (C && typeof C.parseGramObservaciones === "function") {
+            const obs = C.parseGramObservaciones(gRaw);
+            panel.gramObs = obs && obs.length ? obs : null;
+          }
+          // compatibilidad: panel.gram como texto si no hay parser
+          panel.gram = panel.gramObs || panel.gramRaw || panel.gram;
         } else if (esPruebaComentario(pruebaUp)) {
           const txt = (valor != null) ? String(valor).trim() : "";
           if (txt) panel.comentarios.push(txt);
@@ -240,15 +297,18 @@ async function construirMatrizClinica(rut) {
           }
         } else if (C && typeof C.isAisladoPrueba === "function" && C.isAisladoPrueba(pruebaRaw)) {
           const parsed = (typeof C.parseAislado === "function") ? C.parseAislado(valor) : { microorganismo: null, recuento: null, antibioticos: [] };
+          const nota = String(r.nota ?? r.Nota ?? "").trim();
           panel.aislados.push({
             label: String(pruebaRaw).replace(/\s+/g, " ").trim(),
+            nota: nota || null,
             ...parsed
           });
         }
 
-        // Fila única del estudio de cultivo
-        if (!filas[estudioKey]) filas[estudioKey] = {};
-        filas[estudioKey][timestamp] = construirMarkerCultivo(estudioKey);
+        // Fila única del estudio de cultivo (nombre amigable si aplica)
+        const rowKey = panel.displayName || panelKey;
+        if (!filas[rowKey]) filas[rowKey] = {};
+        filas[rowKey][timestamp] = construirMarkerCultivo(panelKey);
 
         // No seguir al flujo normal
         return;

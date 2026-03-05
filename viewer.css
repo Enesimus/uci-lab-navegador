@@ -2,7 +2,7 @@ body {
   font-family: system-ui, Arial, sans-serif; 
   margin: 0; 
   padding: 0 15px;
-  padding-top: 95px !important;
+  padding-top: 15px !important;
 }
 .topbar { 
   position: sticky; 
@@ -57,7 +57,8 @@ body {
   padding: 0 5px;
 }
 .matrix {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12px;
   line-height: 1.2;
 }
@@ -87,6 +88,21 @@ body {
   z-index: 6; 
   background: #fff; 
 }
+/* Primera columna: asegurar ancho consistente */
+.matrix thead th.corner,
+.matrix tbody th.rowhead {
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
+}
+/* Corner: SIEMPRE fijo arriba-izquierda, por sobre todo */
+.matrix thead th.corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 20;      /* más alto que colhead y rowhead */
+  background: #fff; /* evita transparencias al solaparse */
+}
 .colhead .h-fecha { 
   font-weight: 600; 
 }
@@ -112,6 +128,21 @@ body {
   font-size: 12px;
   margin-top: 6px;
   color: #444;
+}
+/* Header normal (fechas) fijo arriba */
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fafafa;
+}
+
+/* Primera columna del cuerpo fija a la izquierda */
+.matrix tbody th.rowhead {
+  position: sticky;
+  left: 0;
+  z-index: 15;      /* debajo del corner, sobre las celdas */
+  background: #fff;
 }
 
 /* @page { size: landscape; } */
@@ -200,6 +231,11 @@ td.empty {
 .matrix th.day-start,
 .matrix td.day-start {
   border-left: 2px solid #bdbdbd;
+}
+
+/* Por defecto, el encabezado de impresión NO debe verse en pantalla */
+.print-header {
+  display: none;
 }
 
 @media print {
