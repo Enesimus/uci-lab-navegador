@@ -1,4 +1,4 @@
-// content.js
+// content.js (patched para soportar Estudio/Estado/Nota y resultados vacíos en cultivos)
 console.log("[UCI Lab Extractor] content.js cargado", chrome.runtime?.id);
 
 function pickResultsTable() {
@@ -6,7 +6,12 @@ function pickResultsTable() {
   for (const t of tables) {
     const headers = Array.from(t.querySelectorAll("thead th")).map(x => x.innerText.trim());
     const has = (s) => headers.includes(s);
+
+    // Mínimo viable
     if (has("Prueba") && has("Resultado") && has("Fecha Validación")) return t;
+
+    // Algunos LIS pueden omitir "Resultado" o renombrar; si aparece "Valor" y "Fecha Validación" lo consideramos
+    if (has("Prueba") && has("Valor") && has("Fecha Validación")) return t;
   }
   return null;
 }
@@ -23,22 +28,19 @@ function normalizarFechaHora(fecha) {
   if (!fecha) return null;
   const s = String(fecha).trim();
 
-  // dd-mm-yyyy HH:MM(:SS)?
   const m = s.match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{1,2}:\d{2})(?::(\d{2}))?$/);
   if (!m) return null;
 
   const dd = m[1], mm = m[2], yyyy = m[3];
-  const hhmm = m[4].padStart(5, "0");        // "7:36" -> "07:36"
+  const hhmm = m[4].padStart(5, "0");
   const ss = m[5] ? m[5].padStart(2, "0") : null;
 
   return ss ? `${yyyy}-${mm}-${dd} ${hhmm}:${ss}` : `${yyyy}-${mm}-${dd} ${hhmm}`;
 }
 
-// Funcion Hash
 async function sha256Hex(input) {
   const s = String(input);
 
-  // Ruta preferida: WebCrypto
   if (globalThis.crypto?.subtle?.digest) {
     const data = new TextEncoder().encode(s);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -46,27 +48,22 @@ async function sha256Hex(input) {
     return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
   }
 
-  // Fallback: FNV-1a 64-bit (BigInt)
   return fnv1a64Hex(s);
 }
 
 function fnv1a64Hex(str) {
-  // FNV-1a 64-bit
-  let hash = 0xcbf29ce484222325n;        // offset basis
+  let hash = 0xcbf29ce484222325n;
   const prime = 0x100000001b3n;
 
   for (let i = 0; i < str.length; i++) {
     hash ^= BigInt(str.charCodeAt(i));
-    hash = (hash * prime) & 0xffffffffffffffffn; // mantener 64-bit
+    hash = (hash * prime) & 0xffffffffffffffffn;
   }
 
-  return hash.toString(16).padStart(16, "0"); // 16 hex chars
+  return hash.toString(16).padStart(16, "0");
 }
 
-
 async function calcularHashOrden({ rut, orden, timestamp, ordenOriginal }) {
-  // Usamos rut + orden + timestamp + ordenOriginal para máxima estabilidad
-  // Si timestamp es null, igual queda determinístico.
   const payload = JSON.stringify({
     rut: rut || "",
     orden: orden || "",
@@ -76,6 +73,14 @@ async function calcularHashOrden({ rut, orden, timestamp, ordenOriginal }) {
   return await sha256Hex(payload);
 }
 
+function normTxt(s) {
+  return String(s || "").trim().toUpperCase();
+}
+
+function esEstudioCultivo(estudioUpper) {
+  const s = String(estudioUpper || "");
+  return s.includes("CULTIVO") || s.includes("HEMOCULTIVO") || s.includes("UROCULTIVO");
+}
 
 function extraerRegistrosTabla() {
   const table = pickResultsTable();
@@ -85,10 +90,13 @@ function extraerRegistrosTabla() {
 
   const idx = headerIndexMap(table);
 
+  const iEstudio = idx["Estudio"]; // opcional
   const iPrueba = idx["Prueba"];
-  const iResultado = idx["Resultado"];
-  const iRef = idx["Valor Referencia"];
+  const iResultado = (idx["Resultado"] !== undefined) ? idx["Resultado"] : idx["Valor"]; // fallback
+  const iRef = idx["Valor Referencia"]; // opcional
   const iFecha = idx["Fecha Validación"];
+  const iEstado = idx["Estado"]; // opcional
+  const iNota = idx["Nota"]; // opcional
 
   const rows = Array.from(table.querySelectorAll("tbody tr"));
   const registros = [];
@@ -96,54 +104,60 @@ function extraerRegistrosTabla() {
   for (const tr of rows) {
     const tds = Array.from(tr.querySelectorAll("td"));
 
-    // Validación robusta: requerimos que existan esas celdas
-    if (
-      iPrueba === undefined || iResultado === undefined || iFecha === undefined ||
-      !tds[iPrueba] || !tds[iResultado] || !tds[iFecha]
-    ) continue;
+    if (iPrueba === undefined || iResultado === undefined || iFecha === undefined) continue;
+    if (!tds[iPrueba] || !tds[iResultado] || !tds[iFecha]) continue;
 
-    const examen = tds[iPrueba]?.innerText.trim();
+    const estudio = (iEstudio !== undefined && tds[iEstudio]) ? tds[iEstudio].innerText.trim() : "";
+    const prueba = tds[iPrueba]?.innerText.trim();
     const valorTxt = tds[iResultado]?.innerText.trim();
-    const referencia = (iRef !== undefined ? tds[iRef]?.innerText.trim() : "") || "";
+    const referencia = (iRef !== undefined && tds[iRef]) ? (tds[iRef]?.innerText.trim() || "") : "";
     const fechaValidacionRaw = tds[iFecha]?.innerText.trim();
+    const estado = (iEstado !== undefined && tds[iEstado]) ? tds[iEstado].innerText.trim() : "";
+    const nota = (iNota !== undefined && tds[iNota]) ? tds[iNota].innerText.trim() : "";
 
-    if (!examen || valorTxt === "") continue;
+    if (!prueba) continue;
 
-    const valorNum = Number(valorTxt.replace(",", "."));
+    // Regla: normalmente no guardamos resultados vacíos.
+    // EXCEPCIÓN: cultivos cabecera "DISPONIBLE" con resultado vacío (negativo/no informado)
+    const textoVal = String(valorTxt || "").trim();
+    const esCabeceraCultivoVacia = textoVal === "" && esEstudioCultivo(normTxt(estudio)) && normTxt(estado).includes("DISPONIBLE") && normTxt(prueba) === normTxt(estudio);
+    if (textoVal === "" && !esCabeceraCultivoVacia) continue;
+
+    const valorNum = Number(textoVal.replace(",", "."));
+    const valor = (textoVal !== "" && Number.isFinite(valorNum)) ? valorNum : textoVal;
+
     registros.push({
-      examen,
-      valor: Number.isFinite(valorNum) ? valorNum : valorTxt,
-      unidad: null,
+      // compatibilidad
+      examen: prueba,
+      valor,
       referencia,
-      // OJO: aquí dejamos null si no podemos normalizar, para no meter basura
-      fechaValidacion: normalizarFechaHora(fechaValidacionRaw) || null
+      fechaValidacion: normalizarFechaHora(fechaValidacionRaw) || null,
+
+      // nuevos campos para paneles especiales
+      estudio,
+      prueba,
+      estado,
+      nota
     });
   }
 
   return registros;
 }
 
-// Extrae metadatos desde el título del modal.
-// Objetivo: ordenOriginal (texto), orden (número), timestamp (normalizado), hash
-
 function extraerMetadatosOrden(textoTitulo) {
   const ordenOriginal = String(textoTitulo || "").trim();
   const ordenOriginalNorm = ordenOriginal.replace(/\s+/g, " ").trim();
 
-  // Orden n° 12345
   const matchOrden = ordenOriginalNorm.match(/Orden n°\s*(\d+)/i);
   const orden = matchOrden ? matchOrden[1] : null;
 
-  // Timestamp dd-mm-yyyy h:mm(:ss)? en cualquier parte del string
   const matchFecha = ordenOriginalNorm.match(/(\d{2}-\d{2}-\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?)/);
   const timestamp = matchFecha ? (normalizarFechaHora(matchFecha[1]) || null) : null;
 
   return { ordenOriginal, ordenOriginalNorm, orden, timestamp };
 }
 
-
 async function extraerDesdeDOM() {
-  // 1) Paciente
   const card = document.querySelector("#DatosDemograficos");
   if (!card) {
     console.warn("No se encontró bloque DatosDemograficos");
@@ -164,7 +178,6 @@ async function extraerDesdeDOM() {
     return null;
   }
 
-  // 2) Orden / metadatos
   const tituloModal = document.querySelector("#ModalMostrarReporte .modal-title");
   if (!tituloModal) {
     console.warn("No se encontró título del modal de reporte");
@@ -179,8 +192,7 @@ async function extraerDesdeDOM() {
     return null;
   }
 
-  // 3) Registros
-  let registros = []; 
+  let registros = [];
   try {
     registros = extraerRegistrosTabla();
   } catch (e) {
@@ -195,18 +207,16 @@ async function extraerDesdeDOM() {
     ordenOriginal: meta.ordenOriginalNorm
   });
 
-  // Contexto “pro”
   return {
     paciente,
-    orden: meta.orden,               // compatibilidad
+    orden: meta.orden,
     ordenOriginal: meta.ordenOriginal,
-    timestamp: meta.timestamp,       // puede ser null
-    hash,                            // ID estable
+    timestamp: meta.timestamp,
+    hash,
     registros
   };
 }
 
-// Listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action !== "extraerOrden") return;
 
@@ -218,12 +228,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return;
       }
       sendResponse({ ok: true, contexto });
-    } catch (err) {
-      console.error(err);
-      sendResponse({ ok: false, mensaje: String(err?.message || err) });
+    } catch (e) {
+      console.error(e);
+      sendResponse({ ok: false, mensaje: e.message || "Error" });
     }
   })();
 
-  return true; // mantiene el canal abierto
+  return true;
 });
-

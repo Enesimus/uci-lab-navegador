@@ -135,7 +135,13 @@ async function construirMatrizClinica(rut) {
     return String(a.orden).localeCompare(String(b.orden), undefined, { numeric: true });
   });
 
-  const ordenBaseFilas = Array.from(new Set(Object.values(MAP_EXAMENES)));
+  //const ordenBaseFilas = Array.from(new Set(Object.values(MAP_EXAMENES)));
+  const BASE_GASES = ["pH", "pO2", "pCO2", "HCO3", "BE", "satO2"];
+  const ordenBaseFilas = Array.from(new Set([
+    ...Object.values(MAP_EXAMENES),
+    ...BASE_GASES.map(x => `${x}_A`),
+    ...BASE_GASES.map(x => `${x}_V`)
+  ]));
   const filas = {};
   const examenesExtra = new Set();
 
@@ -261,7 +267,7 @@ async function construirMatrizClinica(rut) {
         let panel = getCultivoPanel(timestamp, panelKey, baseKey);
 
         // Resultado global: normalmente la prueba igual al estudio
-        if (pruebaUp === normTxt(estudioKey) || pruebaUp === estudioUp) {
+        if (pruebaUp === normTxt(baseKey) || pruebaUp === estudioUp) {
           // Puede ser vacío (negativo/no informado) — igual se guarda
           panel.resultadoGlobal = (valor != null) ? String(valor).trim() : panel.resultadoGlobal;
         } else if (esPruebaTipoMuestra(pruebaUp)) {

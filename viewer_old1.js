@@ -1,10 +1,3 @@
-/*
-UCI Lab Extractor
-Copyright (C) 2026 Juan Sepúlveda Sepúlveda
-
-Licensed under the GNU General Public License v3.0
-*/
-
 // viewer.js — tabla (matriz clínica) + filtros básicos
 // Requiere: exams.js, storage.js (async), matrix.js (async), export.js
 
@@ -51,16 +44,6 @@ const ORINA_SIEMPRE = new Set([
   "DENSIDAD ESPECIFICA"
 ]);
 
-function formatearNombreFila(examen) {
-  if (String(examen).endsWith("_A")) {
-    return `${examen.slice(0, -2)} 🔴`;
-  }
-  if (String(examen).endsWith("_V")) {
-    return `${examen.slice(0, -2)} 🔵`;
-  }
-  return examen;
-}
-
 function getDialog() {
   let dlg = document.getElementById("dlgEspecial");
   if (dlg) return dlg;
@@ -103,12 +86,9 @@ function getDialog() {
     #dlgEspecial .dlg-toggle{font-size:13px;user-select:none}
     #dlgEspecial .dlg-body{padding:12px 14px;max-height:min(70vh,680px);overflow:auto}
     #dlgEspecial .dlg-foot{display:flex;justify-content:flex-end;gap:10px;padding:10px 14px;border-top:1px solid #eee}
-    #dlgEspecial .sec{margin-bottom:8px}
-    #dlgEspecial .sec h4{margin:0 0 3px 0;font-size:13px;text-transform:uppercase;letter-spacing:.04em;opacity:.85}
+    #dlgEspecial .sec{margin-bottom:14px}
+    #dlgEspecial .sec h4{margin:0 0 8px 0;font-size:13px;text-transform:uppercase;letter-spacing:.04em;opacity:.85}
     #dlgEspecial .grid{display:grid;grid-template-columns: 1fr 1fr;gap:8px 14px}
-    #dlgEspecial .sec.gram-sec{margin-bottom:4px}
-    #dlgEspecial .gram-wrap{margin:0;padding:2px}
-    #dlgEspecial .gram-line{margin:0;padding:2px;line-height:1.2}
     #dlgEspecial .item{display:flex;gap:8px;align-items:flex-start}
     #dlgEspecial .k{min-width:180px;max-width:280px;font-size:13px}
     #dlgEspecial .k.sig{font-weight:700}
@@ -215,25 +195,7 @@ function buildCultivoHtml(panel) {
   const chips = [];
   if (panel?.resultadoGlobal) chips.push(`<span class="chip">Resultado: <b>${esc(panel.resultadoGlobal)}</b></span>`);
   if (panel?.tipoMuestra) chips.push(`<span class="chip">Muestra: <b>${esc(panel.tipoMuestra)}</b></span>`);
-
-  const gramHtml = Array.isArray(panel?.gramObs) && panel.gramObs.length
-  ? `
-    <div class="sec gram-sec">
-      <h4>Tinción de Gram</h4>
-      <div class="gram-wrap">
-        ${panel.gramObs.map(o => `<div class="gram-line">${esc(o.item || "")}${o.cantidad ? ` — <b>${esc(o.cantidad)}</b>` : ""}</div>`).join("")}
-      </div>
-    </div>
-  `
-  : (panel?.gramRaw
-      ? `
-        <div class="sec gram-sec">
-          <h4>Tinción de Gram</h4>
-          <div class="gram-line">${esc(panel.gramRaw)}</div>
-        </div>
-      `
-
-      : "");
+  if (panel?.gram) chips.push(`<span class="chip">Gram: <b>${esc(panel.gram)}</b></span>`);
 
   const comentarios = (panel?.comentarios || []).filter(Boolean);
   const ref = panel?.refAntibiograma;
@@ -242,19 +204,17 @@ function buildCultivoHtml(panel) {
   const aisladosHtml = aislados.length
     ? aislados.map((a) => {
         const micro = a?.microorganismo ? esc(a.microorganismo) : "(sin microorganismo)";
-        const rec = a?.recuento ? `<div class="dlg-sub">Recuento de Colonias: <b>${esc(a.recuento)}</b></div>` : "";
-        const notaHtml = a?.nota
-          ? `<div class="dlg-sub" style="margin-top:6px">Nota: <b>${esc(a.nota)}</b></div>`
-          : "";
+        const rec = a?.recuento ? `<div class="dlg-sub">Recuento: <b>${esc(a.recuento)}</b></div>` : "";
+
         const atb = a?.antibioticos || [];
         const atbHtml = atb.length
           ? `
             <table style="width:100%;border-collapse:collapse;margin-top:8px">
               <thead>
                 <tr>
-                  <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">Antibiótico</th>
+                  <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">ATB</th>
                   <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">CIM</th>
-                  <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">Interpretación</th>
+                  <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px 4px">Interp</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,7 +222,7 @@ function buildCultivoHtml(panel) {
                   <tr>
                     <td style="padding:4px">${esc(x.antibiotico || "")}</td>
                     <td style="padding:4px">${esc(x.cim || "")}</td>
-                    <td style="padding:4px">${esc(x.interp || x.raw || "")}</td>
+                    <td style="padding:4px">${esc(x.interp || "")}</td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -276,7 +236,6 @@ function buildCultivoHtml(panel) {
             <div class="dlg-title" style="font-size:14px">${micro}</div>
             ${rec}
             ${atbHtml}
-            ${notaHtml}
           </div>
         `;
       }).join("")
@@ -289,14 +248,11 @@ function buildCultivoHtml(panel) {
   const refHtml = ref
     ? `<div class="sec"><h4>Referencia</h4><div class="v">Antibiograma igual que <b>${esc(ref.tipo)} ${esc(ref.n)}</b></div></div>`
     : "";
-  
-  
 
   return `
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       ${chips.join("")}
     </div>
-    ${gramHtml}
     ${refHtml}
     ${comentariosHtml}
     ${aisladosHtml}
@@ -319,7 +275,7 @@ function openCultivoModal(timestamp, estudioKey) {
   const body = dlg.querySelector("#dlgBody");
   const chk = dlg.querySelector("#dlgMostrarTodo");
 
-  titulo.textContent = panel.displayName ||estudioKey;
+  titulo.textContent = estudioKey;
   sub.textContent = (panel?.meta?.fechaValidacion || timestamp) ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}` : "";
   chk.checked = !!state.modalMostrarTodo;
 
@@ -518,7 +474,7 @@ function renderTabla(matriz) {
         })
         .join("");
 
-      return `<tr><th class="rowhead">${escapeHtml(formatearNombreFila(examen))}</th>${tds}</tr>`;
+      return `<tr><th class="rowhead">${escapeHtml(examen)}</th>${tds}</tr>`;
     })
     .join("");
 
