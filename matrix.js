@@ -60,6 +60,33 @@ function construirMarkerCultivo(estudioKey) {
   return `__CULTIVO_MODAL__::${estudioKey}`;
 }
 
+const ESTUDIOS_MOLECULARES = new Set([
+  "PANEL RESPIRATORIO",
+  "PANEL PCR GASTROINTESTINAL",
+  "PANEL PCR MENINGEO",
+  "PANEL PCR NEUMONIA"
+]);
+
+const ESTUDIO_PCR_SARS = "PCR SARS COV-2";
+
+function esEstudioMolecular(estudioUpper) {
+  return ESTUDIOS_MOLECULARES.has(String(estudioUpper || "").trim().toUpperCase());
+}
+
+function construirMarkerMolecular(estudioKey) {
+  return `__MOLECULAR_MODAL__::${estudioKey}`;
+}
+
+function normalizarResultadoMolecular(valor) {
+  const raw = String(valor || "").trim();
+  const t = raw.toUpperCase();
+
+  if (t === "DETECTADO" || t === "POSITIVO") return "Detectado";
+  if (t === "NO DETECTADO" || t === "NEGATIVO") return "No detectado";
+
+  return raw;
+}
+
 function esResultadoValido(r) {
   if (!r) return false;
 
@@ -135,20 +162,18 @@ async function construirMatrizClinica(rut) {
     return String(a.orden).localeCompare(String(b.orden), undefined, { numeric: true });
   });
 
-  //const ordenBaseFilas = Array.from(new Set(Object.values(MAP_EXAMENES)));
-  const BASE_GASES = ["pH", "pO2", "pCO2", "HCO3", "BE", "satO2"];
-  const ordenBaseFilas = Array.from(new Set([
-    ...Object.values(MAP_EXAMENES),
-    ...BASE_GASES.map(x => `${x}_A`),
-    ...BASE_GASES.map(x => `${x}_V`)
-  ]));
+  const ordenBaseFilas = Array.from(new Set(Object.values(MAP_EXAMENES)));
+  const GASES_CON_ETIQUETA = ["pH", "pO2", "pCO2", "HCO3", "BE", "satO2"];
+  const SET_GASES_CON_ETIQUETA = new Set(GASES_CON_ETIQUETA);
+  
   const filas = {};
   const examenesExtra = new Set();
 
   // Paneles especiales
   const paneles = {
     orina: {},
-    cultivos: {} // paneles.cultivos[timestamp][estudioKey] = panel
+    cultivos: {},
+    moleculares: {} 
   };
 
   // Acceso a parser de cultivos (cultures.js)
@@ -208,6 +233,19 @@ async function construirMatrizClinica(rut) {
     }
     return paneles.cultivos[timestamp][panelKey];
   }
+
+  function getMolecularPanel(timestamp, estudioKey) {
+  if (!paneles.moleculares[timestamp]) paneles.moleculares[timestamp] = {};
+  if (!paneles.moleculares[timestamp][estudioKey]) {
+    paneles.moleculares[timestamp][estudioKey] = {
+      estudio: estudioKey,
+      tipoMuestra: null,
+      resultados: {},
+      meta: { fechaValidacion: timestamp }
+    };
+  }
+  return paneles.moleculares[timestamp][estudioKey];
+}
 
   columnas.forEach(col => {
     const timestamp = col.timestamp;
@@ -320,6 +358,36 @@ async function construirMatrizClinica(rut) {
         return;
       }
 
+      // ===== PANELES MOLECULARES (modal) =====
+      if (esEstudioMolecular(estudioUp)) {
+        const estudioKey = normalizarClaveEstudio(estudioRaw) || estudioUp;
+        const panel = getMolecularPanel(timestamp, estudioKey);
+
+        if (esPruebaTipoMuestra(pruebaUp)) {
+          panel.tipoMuestra = String(valor || "").trim() || panel.tipoMuestra;
+        } else if (pruebaUp !== estudioUp) {
+          panel.resultados[String(pruebaRaw).trim()] = normalizarResultadoMolecular(valor);
+        }
+
+        if (!filas[estudioKey]) filas[estudioKey] = {};
+        filas[estudioKey][timestamp] = construirMarkerMolecular(estudioKey);
+
+        return;
+      }
+
+      // ===== PCR SARS COV-2 (fila simple) =====
+      if (estudioUp === ESTUDIO_PCR_SARS) {
+        if (esPruebaTipoMuestra(pruebaUp)) return;
+
+        if (pruebaUp.includes("SARS")) {
+          const examen = "SARS COV-2";
+          if (!filas[examen]) filas[examen] = {};
+          filas[examen][timestamp] = normalizarResultadoMolecular(valor);
+        }
+
+        return;
+      }
+
       // ===== FLUJO NORMAL (matriz clásica) =====
 
       // Mapeo de nombres alternativos
@@ -334,8 +402,10 @@ async function construirMatrizClinica(rut) {
 
       // Sufijos gasométricos (mantener variable distinta para evitar doble declaración)
       const estudioGas = normTxt(r.estudio || r.Estudio);
-      if (estudioGas.includes("ARTERIAL")) examen += "_A";
-      else if (estudioGas.includes("VENOS")) examen += "_V";
+      if (SET_GASES_CON_ETIQUETA.has(examen)){
+        if (estudioGas.includes("ARTERIAL")) examen += "_A";
+        else if (estudioGas.includes("VENOS")) examen += "_V";
+      }
 
       if (!filas[examen]) {
         examenesExtra.add(examen);
@@ -357,11 +427,50 @@ async function construirMatrizClinica(rut) {
   cultivosKeys.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   filasEspeciales.push(...cultivosKeys.filter(k => !ordenBaseFilas.includes(k) && !examenesExtra.has(k)));
 
-  return {
+  const molecularesKeys = Object.keys(filas)
+  .filter(k => esEstudioMolecular(normTxt(k)));
+  molecularesKeys.sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+  filasEspeciales.push(...molecularesKeys.filter(k => !ordenBaseFilas.includes(k) && !examenesExtra.has(k)));
+
+  const ordenFinalFilas = [];
+  const usados = new Set();
+
+  for (const ex of ordenBaseFilas) {
+    if (SET_GASES_CON_ETIQUETA.has(ex)) {
+      const a = `${ex}_A`;
+      const v = `${ex}_V`;
+
+      if (filas[a]) {
+        ordenFinalFilas.push(a);
+        usados.add(a);
+      }
+      if (filas[v]) {
+        ordenFinalFilas.push(v);
+        usados.add(v);
+      }
+      
+      // si no hubo A/V pero existe la fila base, se conserva
+      if (!filas[a] && !filas[v] && filas[ex]) {
+        ordenFinalFilas.push(ex);
+        usados.add(ex);
+      }
+
+      continue;
+    }
+
+    if (filas[ex]) {
+      ordenFinalFilas.push(ex);
+      usados.add(ex);
+    }
+  }
+
+
+return {
     paciente,
     columnas: columnas.map(c => ({ hash: c.hash, orden: c.orden, timestamp: c.timestamp })),
     filas,
-    ordenFilas: [...ordenBaseFilas, ...Array.from(examenesExtra), ...filasEspeciales],
+    ordenFilas: [...ordenFinalFilas, ...Array.from(examenesExtra), ...filasEspeciales],
     paneles
-  };
+};
+
 }
