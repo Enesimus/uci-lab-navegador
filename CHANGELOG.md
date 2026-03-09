@@ -6,6 +6,26 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ---
 
+## [1.3.0] - 2026-03-09
+
+### Added
+
+- Visualización modal de cultivos.
+- Identificación visual de gases arteriales y venosos.
+- Mejoras de impresión multipágina.
+
+### Changed
+
+- Reestructuración de directorios del proyecto.
+- Ajustes de cabecera de impresión.
+- Mejoras de scroll y visualización de la columna "Examen".
+
+### Fixed
+
+- Ajustes de visualización en viewer longitudinal.
+
+---
+
 ## [1.2] - 2026-03
 
 ### Added
