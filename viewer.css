@@ -2,16 +2,22 @@ body {
   font-family: system-ui, Arial, sans-serif; 
   margin: 0; 
   padding: 0 15px;
-  padding-top: 95px !important;
+  padding-top: 15px !important;
 }
 .topbar { 
   position: sticky; 
   top: 0; 
   background: #ebd882ee; 
-  border-bottom: 
-  1px solid #ddd; 
+  border-bottom: 1px solid rgba(255,255,255,0.15);
   padding: 10px; 
   z-index: 10; 
+}
+.viewer-title {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 14px 6px 14px;
+  color: #000000;
+  letter-spacing: 0.3px;
 }
 .row { 
   display: flex; 
@@ -57,7 +63,8 @@ body {
   padding: 0 5px;
 }
 .matrix {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12px;
   line-height: 1.2;
 }
@@ -80,12 +87,46 @@ body {
   z-index: 4; 
   text-align: left; 
 }
+.badge-gas {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+.badge-a {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.badge-v {
+  background: #2980b9;
+  color: #fff;
+}
 .corner { 
   position: sticky; 
   top: 0; 
   left: 0; 
   z-index: 6; 
   background: #fff; 
+}
+/* Primera columna: asegurar ancho consistente */
+.matrix thead th.corner,
+.matrix tbody th.rowhead {
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
+}
+/* Corner: SIEMPRE fijo arriba-izquierda, por sobre todo */
+.matrix thead th.corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 20;      /* más alto que colhead y rowhead */
+  background: #fff; /* evita transparencias al solaparse */
 }
 .colhead .h-fecha { 
   font-weight: 600; 
@@ -113,8 +154,21 @@ body {
   margin-top: 6px;
   color: #444;
 }
+/* Header normal (fechas) fijo arriba */
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fafafa;
+}
 
-/* @page { size: landscape; } */
+/* Primera columna del cuerpo fija a la izquierda */
+.matrix tbody th.rowhead {
+  position: sticky;
+  left: 0;
+  z-index: 15;      /* debajo del corner, sobre las celdas */
+  background: #fff;
+}
 
 /* Primera columna: ancho fijo + truncado elegante */
 .rowhead {
@@ -202,65 +256,238 @@ td.empty {
   border-left: 2px solid #bdbdbd;
 }
 
+#dlgEspecial .v.detected{
+  color:#b00020;
+  font-weight:600;
+}
+
+/* Por defecto, el encabezado de impresión NO debe verse en pantalla */
+.print-header {
+  display: none;
+}
+
+.print-page-header {
+  display: none;
+}
+
 @media print {
 
-  @page { 
-    /* size: landscape;  */
-    margin: 12mm; 
+  @page {
+    /* No forzamos tamaño: el navegador podrá usar Carta u Oficio.
+       En ambos casos en vertical el ancho útil es equivalente. */
+    margin: 12mm;
   }
 
-  .matrix tbody tr:nth-child(even) td,
-  .matrix tbody tr:nth-child(even) th.rowhead {
-    background: #f2f2f2 !important;
+  body {
+    margin: 0;
+    padding: 0 !important;
   }
 
-  .matrix th.last-col,
-  .matrix td.last-col {
+  /* Ocultar UI normal y la tabla interactiva original */
+  .topbar,
+  .estado,
+  details.filters,
+  #tablaWrap {
+    display: none !important;
+  }
+
+  /* Encabezado general del documento */
+  .print-header {
+    display: none !important;
+  }
+
+  .ph-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .ph-left {
+    flex: 1;
+  }
+
+  .ph-right {
+    width: 220px;
+    text-align: right;
+  }
+
+  .ph-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .ph-sub {
+    font-size: 11px;
+    color: #111;
+    line-height: 1.25;
+  }
+
+  .ph-note {
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  /* Contenedor multipágina */
+  .print-pages {
+    display: block;
+  }
+
+  .print-page {
+    break-after: page;
+    page-break-after: always;
+    padding-top: 0;
+  }
+
+    .print-page-header {
+    display: block !important;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 0 0 8px 0;
+    margin: 0 0 8px 0;
+  }
+
+  .print-page-header .ph-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .print-page-header .ph-left {
+    flex: 1;
+  }
+
+  .print-page-header .ph-right {
+    width: 220px;
+    text-align: right;
+  }
+
+  .print-page-header .ph-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .print-page-header .ph-sub {
+    font-size: 11px;
+    color: #111;
+    line-height: 1.25;
+  }
+
+  .print-page-header .ph-note {
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .print-page-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11px;
+    color: #111;
+    margin: 0 0 6px 0;
+  }
+
+  .print-table-wrap {
+    max-height: none !important;
+    max-width: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border-top: 0 !important;
+  }
+
+  .matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .matrix th,
+  .matrix td {
+    padding: 3px 4px;
+    border: 1px solid #dcdcdc;
+    white-space: nowrap;
+  }
+
+  .matrix thead th {
+    border-bottom: 2px solid #bdbdbd;
+    background: #fff !important;
     font-weight: 600;
   }
 
-  /* Oculta UI interactiva */
-  .topbar, .estado, details.filters { display: none !important; }
-
-  /* Encabezado de impresión */
-  .print-header {
-    display: block !important;
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    background: #fff;
-    border-bottom: 1px solid #ddd;
-    padding: 10px 12px;
-    z-index: 9999;
-  }
-  .ph-row { display: flex; gap: 12px; align-items: flex-start; }
-  .ph-left { flex: 1; }
-  .ph-right { width: 220px; text-align: right; }
-  .ph-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
-  .ph-sub { font-size: 11px; color: #111; line-height: 1.25; }
-  .ph-note { font-size: 10px; color: #666; margin-top: 4px; }
-
-  /* Reserva espacio para que la tabla quede debajo del header */
-  body { padding-top: 78px !important; }
-
-  /* Quitar sticky/position en impresión para evitar “encabezado a mitad de página” */
   .matrix thead th,
   .corner,
   .rowhead {
     position: static !important;
   }
 
-  /* Esto hace que el header de tabla se repita automáticamente en cada página */
-  thead { display: table-header-group; }
-  tfoot { display: table-footer-group; }
+  .corner,
+  .rowhead {
+    border-right: 2px solid #bdbdbd;
+    background: #fff !important;
+    text-align: left;
+  }
 
-  /* Evita que una fila se parta entre páginas */
-  .matrix tr { break-inside: avoid; page-break-inside: avoid; }
-
-  /* En impresión, el contenedor no debe “cortar” */
-  .table-wrap { max-height: none !important; overflow: visible !important; }
-
-  /* Si quieres conservar colores del zebra */
-  /* * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } */
+  .rowhead {
+    width: 180px !important;
+    max-width: 180px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badge-gas {
+  border: 1px solid #000;
+  background: #fff !important;
+  color: #000 !important;
 }
 
+  .matrix tbody tr:nth-child(even) td,
+  .matrix tbody tr:nth-child(even) th.rowhead {
+    background: #f3f3f3 !important;
+  }
 
+  .matrix th.day-alt,
+  .matrix td.day-alt {
+    background: #f7f7f7 !important;
+  }
+
+  .matrix th.day-start,
+  .matrix td.day-start {
+    border-left: 2px solid #bdbdbd;
+  }
+
+  .matrix th.last-col,
+  .matrix td.last-col {
+    font-weight: 700;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  .matrix tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .btn-mini {
+    border: 1px solid #aaa !important;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Para impresoras monocromáticas, dejamos color-control opcional */
+  /* * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } */
+}

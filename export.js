@@ -1,3 +1,10 @@
+/*
+UCI Lab Extractor
+Copyright (C) 2026 Juan Sepúlveda Sepúlveda
+
+Licensed under the GNU General Public License v3.0
+*/
+
 // export.js
 
 function convertirAMatrizBidimensional(matrizClinica, opciones = {}) {
@@ -72,7 +79,10 @@ function generarCSV(matriz) {
 function descargarCSV(nombreArchivo, contenidoCSV) {
   if (!contenidoCSV) return;
 
-  const blob = new Blob([contenidoCSV], { type: "text/csv;charset=utf-8;" });
+
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + contenidoCSV], { type: "text/csv;charset=utf-8;" });
+  //const blob = new Blob([contenidoCSV], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");

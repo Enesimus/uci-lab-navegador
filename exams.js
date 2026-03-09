@@ -1,3 +1,10 @@
+/*
+UCI Lab Extractor
+Copyright (C) 2026 Juan Sepúlveda Sepúlveda
+
+Licensed under the GNU General Public License v3.0
+*/
+
 // exams.js
 
 function normalizarClave(texto) {
@@ -41,7 +48,7 @@ const MAP_EXAMENES = {
     "GPT": "GPT",
     "TRIGLICERIDOS": "Trigliceridos",
     "ALBUMINA": "Albumina",
-    "LDH": "LDH",
+    "DESHIDROGENASA LACTICA (LDH)": "LDH",
     "AMILASA": "Amilasa",
     "LIPASA": "Lipasa",
     "CREATINKINASA TOTAL (CK TOTAL)": "CK Total",
