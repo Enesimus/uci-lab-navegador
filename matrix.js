@@ -18,6 +18,7 @@ function esNoSeObserva(v) {
 
 // ===== ORINA COMPLETA (panel) =====
 const ORINA_ESTUDIO = "ORINA COMPLETA";
+const CITOQUIMICO_LCR_ESTUDIO = "CITOQUIMICO LCR";
 const ORINA_HIDE_NOOBS = new Set([
   "BACTERIAS",
   "PLACAS DE PUS",
@@ -25,6 +26,12 @@ const ORINA_HIDE_NOOBS = new Set([
   "CRISTALES.",
   "CILINDROS",
   "OTROS ELEMENTOS"
+]);
+
+const CITO_LCR_CELULAR = new Set([
+  "LEUCOCITOS",
+  "POLINUCLEARES",
+  "MONONUCLEARES"
 ]);
 
 // ===== CULTIVOS (panel) =====
@@ -172,8 +179,10 @@ async function construirMatrizClinica(rut) {
   // Paneles especiales
   const paneles = {
     orina: {},
+    citoquimicos: {},
     cultivos: {},
-    moleculares: {} 
+    moleculares: {},
+    hemogramas: {}
   };
 
   // Acceso a parser de cultivos (cultures.js)
@@ -242,9 +251,98 @@ async function construirMatrizClinica(rut) {
       tipoMuestra: null,
       resultados: {},
       meta: { fechaValidacion: timestamp }
+      };
+    }
+  return paneles.moleculares[timestamp][estudioKey];
+  }
+
+  function construirMarkerCitoquimico(estudioKey) {
+  return `__CITOQUIMICO_MODAL__::${estudioKey}`;
+}
+
+function getCitoquimicoPanel(timestamp, estudioKey) {
+  if (!paneles.citoquimicos[timestamp]) paneles.citoquimicos[timestamp] = {};
+  if (!paneles.citoquimicos[timestamp][estudioKey]) {
+    paneles.citoquimicos[timestamp][estudioKey] = {
+      estudio: estudioKey,
+      fisico: {},
+      celular: {},
+      meta: { fechaValidacion: timestamp }
     };
   }
-  return paneles.moleculares[timestamp][estudioKey];
+  return paneles.citoquimicos[timestamp][estudioKey];
+}
+
+  function construirMarkerHemograma(estudioKey = "FORMULA MANUAL") {
+  return `__HEMOGRAMA_MODAL__::${estudioKey}`;
+}
+
+function esPruebaHemogramaManual(pruebaUpper) {
+  const p = String(pruebaUpper || "").trim().toUpperCase();
+  return (
+    p === "MORFOLOGIA" ||
+    p === "FORMULA MANUAL" ||
+    p.endsWith(" MANUAL")
+  );
+}
+
+function getHemogramaPanel(timestamp, estudioKey = "FORMULA MANUAL") {
+  if (!paneles.hemogramas[timestamp]) paneles.hemogramas[timestamp] = {};
+  if (!paneles.hemogramas[timestamp][estudioKey]) {
+    paneles.hemogramas[timestamp][estudioKey] = {
+      estudio: estudioKey,
+      morfologiaRaw: null,
+      morfologia: {},
+      formulaManual: false,
+      diferencial: {},
+      meta: { fechaValidacion: timestamp }
+    };
+  }
+  return paneles.hemogramas[timestamp][estudioKey];
+}
+
+function limpiarTextoMorfologia(raw) {
+  return String(raw || "")
+    .replace(/\u00A0/g, " ")
+    .replace(/¬+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseMorfologiaHemograma(raw) {
+  const texto = limpiarTextoMorfologia(raw);
+  if (!texto) return {};
+
+  const out = {};
+
+  const re = /([A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9()%.\s]+?)\s*:\s*([^:]+?)(?=\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9()%.\s]+?\s*:\s*|$)/g;
+  let m;
+
+  while ((m = re.exec(texto)) !== null) {
+    const clave = String(m[1] || "").replace(/\s+/g, " ").trim();
+    const valor = String(m[2] || "").replace(/\s+/g, " ").trim();
+    if (clave) out[clave] = valor;
+  }
+
+  return out;
+}
+
+function nombreDiferencialManual(pruebaRaw) {
+  const p = String(pruebaRaw || "").replace(/\s+/g, " ").trim();
+
+  return p
+    .replace(/\s+MANUAL$/i, "")
+    .replace(/\bBASOFILOS\b/i, "Basófilos")
+    .replace(/\bEOSINOFILOS\b/i, "Eosinófilos")
+    .replace(/\bLINFOCITOS\b/i, "Linfocitos")
+    .replace(/\bMONOCITOS\b/i, "Monocitos")
+    .replace(/\bSEGMENTADOS\b/i, "Segmentados")
+    .replace(/\bBACILIFORMES\b/i, "Baciliformes")
+    .replace(/\bJUVENILES\b/i, "Juveniles")
+    .replace(/\bMIELOCITOS\b/i, "Mielocitos")
+    .replace(/\bPROMIELOCITOS\b/i, "Promielocitos")
+    .replace(/\bBLASTOS\b/i, "Blastos")
+    .replace(/\bERITROBLASTOS\b/i, "Eritroblastos");
 }
 
   columnas.forEach(col => {
@@ -295,6 +393,24 @@ async function construirMatrizClinica(rut) {
 
         if (!filas[ORINA_ESTUDIO]) filas[ORINA_ESTUDIO] = {};
         filas[ORINA_ESTUDIO][timestamp] = "__ORINA_MODAL__";
+        return;
+      }
+
+      // ===== CITOQUIMICO LCR (panel) =====
+      if (estudioUp === CITOQUIMICO_LCR_ESTUDIO) {
+        const estudioKey = CITOQUIMICO_LCR_ESTUDIO;
+        const panel = getCitoquimicoPanel(timestamp, estudioKey);
+
+        const target = CITO_LCR_CELULAR.has(pruebaUp)
+          ? panel.celular
+          : panel.fisico;
+
+        if (!target[pruebaUp]) target[pruebaUp] = [];
+        target[pruebaUp].push(valor);
+
+        if (!filas[estudioKey]) filas[estudioKey] = {};
+        filas[estudioKey][timestamp] = construirMarkerCitoquimico(estudioKey);
+
         return;
       }
 
@@ -350,9 +466,18 @@ async function construirMatrizClinica(rut) {
         }
 
         // Fila única del estudio de cultivo (nombre amigable si aplica)
-        const rowKey = panel.displayName || panelKey;
+        // const rowKey = panel.displayName || panelKey;
+        // if (!filas[rowKey]) filas[rowKey] = {};
+        // filas[rowKey][timestamp] = construirMarkerCultivo(panelKey);
+
+        const effectivePanelKey = panel.estudio || panelKey;
+        const rowKey =
+          panel.displayName ||
+          buildCultivoDisplayName(baseKey, panel.tipoMuestra) ||
+          effectivePanelKey;
+
         if (!filas[rowKey]) filas[rowKey] = {};
-        filas[rowKey][timestamp] = construirMarkerCultivo(panelKey);
+        filas[rowKey][timestamp] = construirMarkerCultivo(effectivePanelKey);
 
         // No seguir al flujo normal
         return;
@@ -371,6 +496,31 @@ async function construirMatrizClinica(rut) {
 
         if (!filas[estudioKey]) filas[estudioKey] = {};
         filas[estudioKey][timestamp] = construirMarkerMolecular(estudioKey);
+
+        return;
+      }
+
+      // ===== HEMOGRAMA CON FORMULA MANUAL (modal) =====
+      if (esPruebaHemogramaManual(pruebaUp)) {
+        const estudioKey = "FORMULA MANUAL";
+        const panel = getHemogramaPanel(timestamp, estudioKey);
+
+        if (pruebaUp === "MORFOLOGIA") {
+          const raw = String(valor || "").trim();
+          panel.morfologiaRaw = raw || panel.morfologiaRaw;
+          panel.morfologia = parseMorfologiaHemograma(raw);
+        } else if (pruebaUp === "FORMULA MANUAL") {
+          const v = String(valor || "").trim().toUpperCase();
+          panel.formulaManual = (v === "M" || v === "MANUAL" || v === "SI" || v === "SÍ" || v === "TRUE");
+        } else if (pruebaUp.endsWith(" MANUAL")) {
+          const nombre = nombreDiferencialManual(pruebaRaw);
+          panel.diferencial[nombre] = String(valor ?? "").trim();
+          panel.formulaManual = true;
+        }
+
+        if (!filas[estudioKey]) filas[estudioKey] = {};
+        filas[estudioKey][timestamp] = construirMarkerHemograma(estudioKey);
+        examenesExtra.add(estudioKey);
 
         return;
       }
@@ -419,6 +569,7 @@ async function construirMatrizClinica(rut) {
   // Orden final de filas: base + extras + paneles conocidos (si existen)
   const filasEspeciales = [];
   if (filas[ORINA_ESTUDIO]) filasEspeciales.push(ORINA_ESTUDIO);
+  if (filas[CITOQUIMICO_LCR_ESTUDIO]) filasEspeciales.push(CITOQUIMICO_LCR_ESTUDIO);
 
   // Agregar estudios de cultivos que se hayan creado (en orden alfabético simple para empezar)
   const cultivosKeys = Object.keys(filas)
@@ -464,13 +615,31 @@ async function construirMatrizClinica(rut) {
     }
   }
 
+  const extrasOrdenados = Array.from(examenesExtra)
+  .filter(ex => ex !== "FORMULA MANUAL")
+  .sort((a, b) => String(a).localeCompare(String(b), "es", { numeric: true }));
+
+const ordenFilasFinal = [...ordenFinalFilas];
+
+// Insertar FORMULA MANUAL justo debajo de Plaquetas, si existe
+if (filas["FORMULA MANUAL"]) {
+  const idxPlaquetas = ordenFilasFinal.indexOf("Plaquetas");
+  if (idxPlaquetas >= 0) {
+    ordenFilasFinal.splice(idxPlaquetas + 1, 0, "FORMULA MANUAL");
+  } else {
+    ordenFilasFinal.push("FORMULA MANUAL");
+  }
+}
+
+ordenFilasFinal.push(...extrasOrdenados);
+ordenFilasFinal.push(...filasEspeciales);
 
 return {
-    paciente,
-    columnas: columnas.map(c => ({ hash: c.hash, orden: c.orden, timestamp: c.timestamp })),
-    filas,
-    ordenFilas: [...ordenFinalFilas, ...Array.from(examenesExtra), ...filasEspeciales],
-    paneles
+  paciente,
+  columnas: columnas.map(c => ({ hash: c.hash, orden: c.orden, timestamp: c.timestamp })),
+  filas,
+  ordenFilas: ordenFilasFinal,
+  paneles
 };
 
 }

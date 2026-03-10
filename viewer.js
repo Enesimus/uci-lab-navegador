@@ -8,22 +8,6 @@ Licensed under the GNU General Public License v3.0
 // viewer.js — tabla (matriz clínica) + filtros básicos
 // Requiere: exams.js, storage.js (async), matrix.js (async), export.js
 
-// function formatearFechaClinica(timestamp) {
-//   if (!timestamp) return "";
-
-//   // Esperamos formato "YYYY-MM-DD HH:MM(:SS)?"
-//   const [fecha, hora] = String(timestamp).split(" ");
-
-//   if (!fecha) return timestamp;
-
-//   const partes = fecha.split("-");
-//   if (partes.length !== 3) return timestamp;
-
-//   const [yyyy, mm, dd] = partes;
-
-//   return `${dd}-${mm}-${yyyy}` + (hora ? ` ${hora.slice(0,5)}` : "");
-// }
-
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -222,6 +206,12 @@ function getDialog() {
       if (state._lastModal.tipo === "MOLECULAR") {
         openMolecularModal(state._lastModal.timestamp, state._lastModal.estudioKey);
       }
+      if (state._lastModal.tipo === "HEMOGRAMA") {
+        openHemogramaModal(state._lastModal.timestamp, state._lastModal.estudioKey);
+      }
+      if (state._lastModal.tipo === "CITOQUIMICO") {
+        openCitoquimicoModal(state._lastModal.timestamp, state._lastModal.estudioKey);
+      }
     }
     });
 
@@ -303,6 +293,47 @@ function openOrinaModal(timestamp) {
     <div class="sec">
       <h4>Microscópico / morfológico</h4>
       ${microHtml}
+    </div>
+  `;
+
+  if (!dlg.open) dlg.showModal();
+}
+
+function openCitoquimicoModal(timestamp, estudioKey) {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.citoquimicos?.[timestamp]?.[estudioKey];
+  if (!panel) {
+    setEstado("No hay panel de CITOQUIMICO para esta fecha/estudio.", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "CITOQUIMICO", timestamp, estudioKey };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+
+  titulo.textContent = estudioKey === "CITOQUIMICO LCR" ? "Citoquímico LCR" : estudioKey;
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp)
+    ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}`
+    : "";
+
+  chk.checked = true;
+  chk.closest(".dlg-toolbar").style.display = "none";
+
+  const fisicoHtml = buildSectionHtml(panel.fisico, true);
+  const celularHtml = buildSectionHtml(panel.celular, true);
+
+  body.innerHTML = `
+    <div class="sec">
+      <h4>Físico-químico</h4>
+      ${fisicoHtml}
+    </div>
+    <div class="sec">
+      <h4>Citología / recuento</h4>
+      ${celularHtml}
     </div>
   `;
 
@@ -424,6 +455,81 @@ function openCultivoModal(timestamp, estudioKey) {
   state.modalMostrarTodo = false;
 
   body.innerHTML = buildCultivoHtml(panel);
+
+  if (!dlg.open) dlg.showModal();
+}
+
+function buildHemogramaManualHtml(panel) {
+  const esc = escapeTxt;
+
+  const diffRows = Object.entries(panel?.diferencial || {})
+    .sort((a, b) => a[0].localeCompare(b[0], "es"))
+    .map(([k, v]) => `
+      <tr>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;width:70%">${esc(k)}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;width:30%"><b>${esc(v)}</b></td>
+      </tr>
+    `)
+    .join("");
+
+  const diferencialHtml = diffRows
+    ? `
+      <div class="sec">
+        <h4>Diferencial manual</h4>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          <tbody>${diffRows}</tbody>
+        </table>
+      </div>
+    `
+    : `<div class="dlg-sub">(Sin diferencial manual informado)</div>`;
+
+  const morfoRows = Object.entries(panel?.morfologia || {})
+    .sort((a, b) => a[0].localeCompare(b[0], "es"))
+    .map(([k, v]) => `
+      <div class="item">
+        <div class="k">${esc(k)}</div>
+        <div class="v"><b>${esc(v)}</b></div>
+      </div>
+    `)
+    .join("");
+
+  const morfologiaHtml = morfoRows
+    ? `
+      <div class="sec">
+        <h4>Morfología</h4>
+        <div class="grid">${morfoRows}</div>
+      </div>
+    `
+    : `<div class="dlg-sub">(Sin morfología informada)</div>`;
+
+  return `${diferencialHtml}${morfologiaHtml}`;
+}
+
+function openHemogramaModal(timestamp, estudioKey = "FORMULA MANUAL") {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.hemogramas?.[timestamp]?.[estudioKey];
+  if (!panel) {
+    setEstado("No hay panel de hemograma manual para esta fecha.", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "HEMOGRAMA", timestamp, estudioKey };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+
+  titulo.textContent = "Hemograma con fórmula manual";
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp)
+    ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}`
+    : "";
+
+  chk.checked = false;
+  chk.closest(".dlg-toolbar").style.display = "none";
+
+  body.innerHTML = buildHemogramaManualHtml(panel);
 
   if (!dlg.open) dlg.showModal();
 }
@@ -659,159 +765,6 @@ function construirPrintHeaderHTML(data, matriz, pageNum = null, totalPages = nul
   `;
 }
 
-// function renderTabla(matriz) {
-//   const wrap = $("tablaWrap");
-//   if (!matriz) {
-//     wrap.innerHTML = "";
-//     return;
-//   }
-
-//   const cols = matriz.columnas || [];
-
-//   const headerCells = cols
-//     .map((c, idx) => {
-//       const h = formatearHeader(c.timestamp, c.orden);
-//       return `
-//         <th class="colhead" data-col="${idx}">
-//           <div class="h-fecha">${escapeHtml(h.fecha)}</div>
-//           <div class="h-hora">${escapeHtml(h.hora)}</div>
-//           <div class="h-orden">#${escapeHtml(h.orden)}</div>
-//         </th>`;
-//     })
-//     .join("");
-
-//   const rowsHtml = (matriz.ordenFilas || [])
-//     .map((examen) => {
-//       const row = matriz.filas?.[examen] || {};
-//       const tds = cols
-//         .map((c, idx) => {
-//           const v = row[c.timestamp];
-//           const txt = v === undefined || v === null ? "" : String(v).trim();
-//           let cls = "";
-
-//           // Marcadores especiales (render distinto)
-//           if (txt === "__ORINA_MODAL__") {
-//             return `
-//               <td class="${cls}" data-col="${idx}">
-//                 <button class="btn-mini" data-action="orina" data-ts="${escapeHtml(c.timestamp)}">Ver</button>
-//               </td>`;
-//           }
-
-//           if (txt.startsWith("__CULTIVO_MODAL__::")) {
-//             const estudioKey = txt.slice("__CULTIVO_MODAL__::".length);
-//             return `
-//               <td class="${cls}" data-col="${idx}">
-//                 <button class="btn-mini" data-action="cultivo" data-ts="${escapeHtml(c.timestamp)}" data-est="${escapeHtml(estudioKey)}">Ver</button>
-//               </td>`;
-//           }
-
-//           if (txt.startsWith("__MOLECULAR_MODAL__::")) {
-//             const estudioKey = txt.slice("__MOLECULAR_MODAL__::".length);
-//             return `
-//               <td class="${cls}" data-col="${idx}">
-//                 <button class="btn-mini" data-action="molecular" data-ts="${escapeHtml(c.timestamp)}" data-est="${escapeHtml(estudioKey)}">Ver</button>
-//               </td>`;
-//           }
-
-//           if(!txt) cls = "empty";
-//           else if (!Number.isNaN(Number(txt.replace(",", ".")))) cls = "num";
-//           return `<td class="${cls}" data-col="${idx}">${escapeHtml(txt)}</td>`;
-//         })
-//         .join("");
-
-//       return `<tr><th class="rowhead">${escapeHtml(formatearNombreFila(examen))}</th>${tds}</tr>`;
-//     })
-//     .join("");
-
-//   wrap.innerHTML = `
-//     <table class="matrix">
-//       <thead>
-//         <tr>
-//           <th class="corner">Examen</th>
-//           ${headerCells}
-//         </tr>
-//       </thead>
-//       <tbody>${rowsHtml}</tbody>
-//     </table>
-//   `;
-
-//   // estilos mínimos para botones dentro de celdas
-//   if (!document.getElementById("viewer-inline-btn-style")) {
-//     const st = document.createElement("style");
-//     st.id = "viewer-inline-btn-style";
-//     st.textContent = `
-//       .btn-mini{font-size:12px;padding:3px 8px;border:1px solid #bbb;border-radius:10px;background:#fff;cursor:pointer}
-//       .btn-mini:hover{border-color:#888}
-//     `;
-//     document.head.appendChild(st);
-//   }
-//   const lastIdx = cols.length - 1;
-//   wrap.querySelectorAll(`[data-col="${lastIdx}"]`).forEach(el => el.classList.add("last-col"));
-
-//   const table = wrap.querySelector("table.matrix");
-//   if (!table) return;
-
-//   let ultimoDia = null;
-//   let alternar = false;
-
-//   // Zebra vertical + divisores por día
-
-//   cols.forEach((c, idx) => {
-//     const dia = String(c.timestamp || "").split(" ")[0]; // YYYY-MM-DD
-//     if (!dia) return;
-
-//     const esNuevoDia = dia !== ultimoDia;
-
-//     if (esNuevoDia) {
-//       alternar = !alternar;
-//       ultimoDia = dia;
-
-//     // Marca inicio de día (divisor)
-//     wrap.querySelectorAll(`[data-col="${idx}"]`)
-//       .forEach(el => el.classList.add("day-start"));
-//     }
-
-//     // Zebra vertical por bloques de día
-//     if (alternar) {
-//       wrap.querySelectorAll(`[data-col="${idx}"]`)
-//         .forEach(el => el.classList.add("day-alt"));
-//     }
-//   });
-
-//   table.addEventListener("mouseover", (e) => {
-//     const cell = e.target.closest("[data-col]");
-//     if (!cell) return;
-//     const idx = cell.getAttribute("data-col");
-//     table.querySelectorAll(`[data-col="${idx}"]`).forEach(el => el.classList.add("col-hover"));
-//   });
-
-//   table.addEventListener("mouseout", (e) => {
-//     const cell = e.target.closest("[data-col]");
-//     if (!cell) return;
-//     const idx = cell.getAttribute("data-col");
-//     table.querySelectorAll(`[data-col="${idx}"]`).forEach(el => el.classList.remove("col-hover"));
-//   });
-
-//   // Acciones (modal de especiales)
-//   table.addEventListener("click", (e) => {
-//     const btn = e.target.closest("button[data-action]");
-//     if (!btn) return;
-//     const action = btn.getAttribute("data-action");
-//     const ts = btn.getAttribute("data-ts");
-//     if (action === "orina") {
-//       openOrinaModal(ts);
-//     }
-//     if (action === "cultivo") {
-//       const est = btn.getAttribute("data-est") || "";
-//       openCultivoModal(ts, est);
-//     }
-//     if (action === "molecular") {
-//       const est = btn.getAttribute("data-est") || "";
-//       openMolecularModal(ts, est);
-//     }
-//   });
-// }
-
 function ensureInlineBtnStyle() {
   if (document.getElementById("viewer-inline-btn-style")) return;
 
@@ -904,6 +857,22 @@ function construirTablaHTML(matriz) {
             return `
               <td class="${cls}" data-col="${idx}">
                 <button class="btn-mini" data-action="molecular" data-ts="${escapeHtml(c.timestamp)}" data-est="${escapeHtml(estudioKey)}">Ver</button>
+              </td>`;
+          }
+
+          if (txt.startsWith("__CITOQUIMICO_MODAL__::")) {
+            const estudioKey = txt.slice("__CITOQUIMICO_MODAL__::".length);
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="citoquimico" data-ts="${escapeHtml(c.timestamp)}" data-est="${escapeHtml(estudioKey)}">Ver</button>
+              </td>`;
+          }
+
+          if (txt.startsWith("__HEMOGRAMA_MODAL__::")) {
+            const estudioKey = txt.slice("__HEMOGRAMA_MODAL__::".length);
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="hemograma" data-ts="${escapeHtml(c.timestamp)}" data-est="${escapeHtml(estudioKey)}">Ver</button>
               </td>`;
           }
           
@@ -1015,6 +984,18 @@ function decorarTablaRenderizada(wrap, matriz, interactive = true) {
     if (action === "molecular") {
       const est = btn.getAttribute("data-est") || "";
       openMolecularModal(ts, est);
+      return;
+    }
+
+    if (action === "citoquimico") {
+      const est = btn.getAttribute("data-est") || "";
+      openCitoquimicoModal(ts, est);
+      return;
+    }
+
+    if (action === "hemograma") {
+      const est = btn.getAttribute("data-est") || "";
+      openHemogramaModal(ts, est);
       return;
     }
   });
