@@ -422,23 +422,33 @@ function nombreDiferencialManual(pruebaRaw) {
 
         // Resultado global: normalmente la prueba igual al estudio
         if (pruebaUp === normTxt(baseKey) || pruebaUp === estudioUp) {
-          // Puede ser vacío (negativo/no informado) — igual se guarda
           panel.resultadoGlobal = (valor != null) ? String(valor).trim() : panel.resultadoGlobal;
+
         } else if (esPruebaTipoMuestra(pruebaUp)) {
           const tmRaw = (valor != null) ? String(valor).trim() : "";
           const desiredKey = buildCultivoPanelKey(baseKey, tmRaw);
+
           if (desiredKey !== panelKey) {
             // Migrar panel si existía bajo baseKey / panelKey antiguo
             if (!paneles.cultivos[timestamp][desiredKey]) {
               paneles.cultivos[timestamp][desiredKey] = panel;
-              delete paneles.cultivos[timestamp][panelKey];
             }
+            delete paneles.cultivos[timestamp][panelKey];
+
+            // Limpiar fila residual del nombre base
+            if (filas[baseKey]?.[timestamp]) {
+              delete filas[baseKey][timestamp];
+              if (!Object.keys(filas[baseKey]).length) delete filas[baseKey];
+            }
+
             panelKey = desiredKey;
             panel = paneles.cultivos[timestamp][panelKey];
             panel.estudio = panelKey;
           }
+
           panel.tipoMuestra = tmRaw || panel.tipoMuestra;
           panel.displayName = buildCultivoDisplayName(baseKey, panel.tipoMuestra);
+
         } else if (esPruebaGram(pruebaUp)) {
           const gRaw = (valor != null) ? String(valor).trim() : "";
           panel.gramRaw = gRaw || panel.gramRaw;
@@ -446,8 +456,8 @@ function nombreDiferencialManual(pruebaRaw) {
             const obs = C.parseGramObservaciones(gRaw);
             panel.gramObs = obs && obs.length ? obs : null;
           }
-          // compatibilidad: panel.gram como texto si no hay parser
           panel.gram = panel.gramObs || panel.gramRaw || panel.gram;
+
         } else if (esPruebaComentario(pruebaUp)) {
           const txt = (valor != null) ? String(valor).trim() : "";
           if (txt) panel.comentarios.push(txt);
@@ -455,8 +465,12 @@ function nombreDiferencialManual(pruebaRaw) {
             const ref = C.parseReferenciaAntibiograma(txt);
             if (ref) panel.refAntibiograma = ref;
           }
+
         } else if (C && typeof C.isAisladoPrueba === "function" && C.isAisladoPrueba(pruebaRaw)) {
-          const parsed = (typeof C.parseAislado === "function") ? C.parseAislado(valor) : { microorganismo: null, recuento: null, antibioticos: [] };
+          const parsed = (typeof C.parseAislado === "function")
+            ? C.parseAislado(valor)
+            : { microorganismo: null, recuento: null, antibioticos: [] };
+
           const nota = String(r.nota ?? r.Nota ?? "").trim();
           panel.aislados.push({
             label: String(pruebaRaw).replace(/\s+/g, " ").trim(),
@@ -464,11 +478,6 @@ function nombreDiferencialManual(pruebaRaw) {
             ...parsed
           });
         }
-
-        // Fila única del estudio de cultivo (nombre amigable si aplica)
-        // const rowKey = panel.displayName || panelKey;
-        // if (!filas[rowKey]) filas[rowKey] = {};
-        // filas[rowKey][timestamp] = construirMarkerCultivo(panelKey);
 
         const effectivePanelKey = panel.estudio || panelKey;
         const rowKey =
@@ -479,7 +488,6 @@ function nombreDiferencialManual(pruebaRaw) {
         if (!filas[rowKey]) filas[rowKey] = {};
         filas[rowKey][timestamp] = construirMarkerCultivo(effectivePanelKey);
 
-        // No seguir al flujo normal
         return;
       }
 
