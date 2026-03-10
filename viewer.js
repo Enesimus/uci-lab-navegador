@@ -49,7 +49,14 @@ const state = {
 
 const ORINA_SIEMPRE = new Set([
   "PH",
-  "DENSIDAD ESPECIFICA"
+  "DENSIDAD ESPECIFICA", 
+  "NITRITOS",
+  "LEUCOCITOS",
+  "ERITROCITOS",
+  "PROTEINAS",
+  "GLUCOSA",
+  "CUERPOS CETONICOS",
+  "BILIRRUBINA"
 ]);
 
 function formatearNombreFila(examen) {
@@ -280,7 +287,13 @@ function openOrinaModal(timestamp) {
   chk.checked = !!state.modalMostrarTodo;
 
   const fisicoHtml = buildSectionHtml(panel.fisico, state.modalMostrarTodo);
-  const microHtml = buildSectionHtml(panel.micro, state.modalMostrarTodo);
+  //const microHtml = buildSectionHtml(panel.micro, state.modalMostrarTodo);
+
+  let microHtml = buildSectionHtml(panel.micro, state.modalMostrarTodo);
+
+  if (!state.modalMostrarTodo && microHtml.includes("Nada que mostrar")) {
+  microHtml = `<div class="dlg-sub">Sedimento sin hallazgos relevantes</div>`;
+    }
 
   body.innerHTML = `
     <div class="sec">
@@ -407,7 +420,8 @@ function openCultivoModal(timestamp, estudioKey) {
 
   titulo.textContent = panel.displayName ||estudioKey;
   sub.textContent = (panel?.meta?.fechaValidacion || timestamp) ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}` : "";
-  chk.checked = !!state.modalMostrarTodo;
+  chk.checked = false;
+  state.modalMostrarTodo = false;
 
   body.innerHTML = buildCultivoHtml(panel);
 
