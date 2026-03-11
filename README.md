@@ -1,6 +1,15 @@
-# UCI Lab Extractor – Documentación del Proyecto
+# UCI Lab Navegador – Documentación del Proyecto
+
+Proyecto desarrollado por  
+**Dr. Juan Sepúlveda Sepúlveda**
+
+Visualización longitudinal de exámenes de laboratorio y resumen infeccioso para apoyo clínico en Unidades de Cuidados Intensivos.
+
+La arquitectura permite su extensión a otras unidades clínicas hospitalarias.
 
 ![GPL v3 License badge showing blue background with white text](https://img.shields.io/badge/License-GPLv3-blue.svg)
+
+---
 
 ## License
 
@@ -11,7 +20,7 @@ Year: 2026
 
 This software was developed as an independent clinical-academic initiative for longitudinal visualization of pediatric ICU laboratory data.
 
-Commercial integration into proprietary laboratory information systems (LIS) or redistribution as part of closed-source software requires explicit authorization from the author.
+Commercial integration into proprietary laboratory information systems (LIS) may require additional authorization from the author depending on the integration model.
 
 ---
 
@@ -28,16 +37,18 @@ La integración comercial en Sistemas de Información de Laboratorio (LIS) o su 
 
 ## 1. Descripción General
 
-UCI Lab Extractor es una extensión de Chrome diseñada para:
+UCI Lab Navegador es una extensión de Chrome diseñada para:
 
-- Extraer exámenes de laboratorio desde el sistema clínico institucional.
+- Reconocer exámenes de laboratorio desde el sistema clínico institucional.
 - Estructurarlos longitudinalmente por paciente.
 - Visualizarlos en formato matricial clínico.
 - Permitir exportación e impresión.
 - Evolucionar hacia análisis automático de cambios clínicamente relevantes.
-- Generar reportes que faciliten la comprension de la evolucion clínica (gráficas, tablas) para la confección de resúmenes (de evolución, traslado o para reuniones clínicas).
+- Generar reportes que faciliten la comprensión de la evolución clínica (gráficas, tablas) para la confección de resúmenes clínicos (evolución, traslado o para reuniones clínicas).
 
 El objetivo es transformar información fragmentada en una vista clínica longitudinal clara, rápida y usable.
+
+---
 
 ## 2. Contexto Clínico
 
@@ -51,7 +62,11 @@ La herramienta busca reducir:
 - Tiempo de navegación.
 - Riesgo de omitir cambios relevantes.
 
+---
+
 ## 3. Arquitectura Técnica Actual
+
+El sistema utiliza un modelo de persistencia por paciente que permite reconstruir la historia longitudinal de exámenes.
 
 ### 3.1 Tipo de aplicación
 
@@ -81,28 +96,67 @@ Persistencia por paciente (UCI_\<rut>)
 
 ```
 
+## 3.4 Flujo general de procesamiento y visualización
+
+```mermaid
+flowchart TD
+   a["`**Sistema clínico institucional / LIS**
+   (resultados visibles en la interfaz web)`"]
+   a --> b["` **Extensión Chrome**
+   _content.js_
+- reconoce paciente, orden y resultados
+- captura registros visibles `"]
+  b --> c["`**Normalización y canonicalización**
+_exams.js / cultures.js / matrix.js_
+- alias de exámenes
+- fechas y valores
+- paneles especiales y cultivos`"]
+  c --> d["`**Persistencia local**
+_chrome.storage.local_
+- almacenamiento por paciente (UCI_<rut>)
+- órdenes indexadas por hash `"]
+  d --> e["`**Viewer longitudinal**
+_viewer.js_
+- matriz clínica
+- modales
+- impresión `"]
+  d --> f["`**Resumen infeccioso**
+_viewer.js_
+- lista cronológica
+- cultivos/paneles `"]
+  f --> g["`**Exportación y portabilidad**
+_export.js_
+- CSV
+- JSON (backup / importación / traslado) `"]
+ e --> g
+```
+
+---
+
 ## 4. Fases del Proyecto
 
-### Fase 1 – Viewer y UX
+### Fase 1 – Visualización clínica longitudinal
 
 - Vista HTML longitudinal
 - Sidebar
 - Impresión
 - Mejora visual del encabezado
 
-### Fase 2 – Estudios especiales (Cultivos)
+### Fase 2 – Soporte para estudios especiales (cultivos y paneles moleculares)
 
 - Modelo distinto al matricial
 - Visualización específica
 - Estructura jerárquica
 
-### Fase 3 – Inteligencia clínica
+### Fase 3 – Capa de análisis clínico automatizado
 
 - Detección de cambios significativos
 - Resaltado automático
 - Indicadores visuales
 - Reglas configurables
 - Creación de gráficas
+
+---
 
 ## 5. Roadmap General
 
@@ -112,21 +166,28 @@ Persistencia por paciente (UCI_\<rut>)
 - Capa de análisis clínico
 - Posible escalabilidad multiusuario
 
+---
+
 ## 6. Principios de Diseño
 
 - Prioridad clínica sobre técnica.
 - Minimizar ruido visual.
-- Reducir fricción cognitiva.
-- Transparencia del procesamiento.
+- Reducir la fricción cognitiva durante la revisión clínica.
+- Transparencia en el procesamiento de datos.
 - No alterar datos originales del HIS.
 - Procesamiento completamente local.
 
+---
+
 ## 7. Seguridad y Privacidad
 
+- No requiere credenciales adicionales ni acceso directo a bases de datos institucionales.
 - No envía datos a servidores externos.
 - Procesamiento 100% local.
 - No almacena información fuera del navegador del usuario.
 - No modifica registros institucionales.
+
+---
 
 ## 8. Reconocimiento de Desarrollo Asistido
 
@@ -140,16 +201,27 @@ Este proyecto fue desarrollado con asistencia técnica de ChatGPT (OpenAI), util
 
 La dirección clínica, conceptual y las decisiones funcionales corresponden al autor del proyecto.
 
+---
+
 ## 9. Estado Actual
 
-Versión: 1.2
-Estado: Versión estable con arquitectura hash-based, trazabilidad y viewer clínico funcional.
+Versión: 1.4
+
+Estado: versión estable con:
+
+- visualización longitudinal de exámenes
+- soporte para cultivos y estudios especiales
+- resumen infeccioso
+- exportación CSV
+- exportación e importación JSON para respaldo y portabilidad de datos
+
+---
 
 ## 10. Flujo de Procesamiento de Datos
 
-### Paso 1 – Extracción
+### Paso 1 – Reconocimiento
 
-- ```content.js``` extrae:
+- ```content.js``` reconoce:
   - Paciente
   - Orden
   - Registros crudos
@@ -183,7 +255,6 @@ Se guarda en:
 chrome.storage.local
 Clave: UCI_<rut>
 Subclave: <hash>
-
 ```
 
 ### Paso 6 – Construcción de matriz
@@ -199,12 +270,63 @@ Subclave: <hash>
 - Alineación numérica
 - Separadores visuales
 
-### Paso 8 – Exportación
+#### Ejemplo de visualizacion
 
-- Construcción matriz bidimensional
-- Inserción de metadata
-- Inserción de fila HASH
-- Generación CSV
+![Vista principal](images\main_screen1.png)
+
+![Vista resumen infeccioso](images\main_screen2.png)
+
+### Paso 8 – Exportación y portabilidad de datos
+
+El sistema permite exportar los datos procesados del paciente en distintos formatos.
+
+#### Exportación CSV
+
+Se genera una matriz bidimensional que incluye:
+
+- Metadata del paciente
+- Filas de exámenes
+- Columnas cronológicas
+- Fila de verificación HASH
+
+Este formato está orientado a:
+
+- revisión externa
+- generación de reportes
+- análisis tabular
+
+#### Exportación JSON
+
+La versión 1.4 incorpora exportación completa del modelo de datos del paciente en formato JSON.
+
+Estructura del archivo exportado:
+
+```json
+{
+  "format": "uci-lab-extractor",
+  "version": 1,
+  "exportedAt": "...",
+  "patientKey": "...",
+  "data": { ... }
+}
+```
+
+### Importación JSON
+
+El sistema también permite importar archivos JSON previamente exportados.
+
+Durante la importación se valida:
+
+- formato del archivo
+- versión del esquema
+- existencia del RUT del paciente
+- estructura de órdenes clínicas
+
+Una vez validado, el paciente se reconstruye en:
+
+```chrome.storage.local```
+
+Esto permite trasladar información entre distintos equipos sin depender del acceso directo al sistema LIS.
 
 <!-- >💡 **Nota**: los permisos de acceso en el ```manifest.json``` para intranet como en acceso externo son:
 >
@@ -224,15 +346,37 @@ Subclave: <hash>
 >]
 >``` -->
 
+---
+
+## 11. Impacto Clínico Esperado
+
+La herramienta busca mejorar la interpretación longitudinal de los exámenes de laboratorio en pacientes hospitalizados, especialmente en entornos de alta complejidad como las Unidades de Cuidados Intensivos.
+
+Los beneficios clínicos esperados incluyen:
+
+- **Mejor visualización de tendencias**: permite observar cambios progresivos en parámetros de laboratorio que pueden pasar desapercibidos en visualizaciones episódicas tradicionales.
+- **Reducción de carga cognitiva**: al agrupar y estructurar los resultados longitudinalmente, disminuye el tiempo requerido para reconstruir la evolución clínica de un paciente.
+- **Apoyo al seguimiento de procesos infecciosos**: la visualización integrada de cultivos y paneles moleculares facilita la identificación rápida de patógenos detectados y su evolución en el tiempo.
+- **Facilitación de la comunicación clínica**: la exportación e impresión de matrices longitudinales permite generar resúmenes claros para discusiones clínicas, traslados de pacientes o reuniones de equipo.
+- **Potencial para análisis clínico automatizado**: la arquitectura del proyecto permite incorporar en el futuro reglas de detección de cambios clínicamente relevantes y generación automática de alertas o visualizaciones analíticas.
+
+En conjunto, el objetivo es transformar datos de laboratorio presentados de forma fragmentada en una representación longitudinal comprensible que facilite la toma de decisiones clínicas.
+
+---
+
 ## Disclaimer
 
 This tool does not modify or interfere with any laboratory information system. It operates exclusively at the user interface level and stores data locally.
+
+This tool is intended as a clinical support visualization utility and not as a diagnostic decision system.
 
 The author assumes no responsibility for clinical decisions derived from its use.
 
 ---
 
 Esta herramienta no modifica ni interfiere con ningún sistema de información de laboratorio. Opera exclusivamente en el nivel de interfase de usuario y almacena datos localmente.
+
+Esta herramienta está pensada como una utilidad de visualización de apoyo clínico y no como un sistema de decisión diagnóstica.
 
 El autor no se responsabiliza por decisiones clínicas derivadas de su uso.
 

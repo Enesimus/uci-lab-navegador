@@ -14,7 +14,7 @@ Desarrollo clínico asistido por herramientas de programación basadas en IA (Ch
 El código se encuentra publicado bajo licencia de software libre GNU General Public License v3 (GPL-3.0), permitiendo su revisión, auditoría y eventual mejora en contextos académicos o institucionales.
 
 **Repositorio público del proyecto:**
-[https://github.com/Enesimus/revienta-el-lab](https://github.com/Enesimus/revienta-el-lab)
+[https://github.com/Enesimus/uci-lab-navegador](https://github.com/Enesimus/uci-lab-navegador)
 
 ### 1. Problema clínico
 

@@ -4,15 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UCI Lab Extractor</title>
+  <title>UCI Lab Navegador</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <div class="card">
     <div class="header">
-      <h1 class="title">UCI Lab Extractor</h1>
-      <p class="subtitle">Extracción y vista longitudinal de exámenes</p>
+      <h1 class="title">UCI Lab Navegador</h1>
+      <p class="subtitle">Reconocimiento y vista longitudinal de exámenes</p>
     </div>
   </div>
 
@@ -29,13 +29,13 @@
     </div>
 
     <div class="hint">
-      Tip: Abre el informe de laboratorio en el navegador y luego usa "Extraer orden actual".
+      Tip: Abre el informe de laboratorio en el navegador y luego usa "Leer orden actual".
     </div>
   </div>
 <div class="section">
   <div class="label">Acciones
     <div class="btns">
-      <button id="btnExtraer">Extraer orden actual</button>
+      <button id="btnExtraer">Leer orden actual</button>
       <button id="btnVer">Ver resumen longitudinal</button>
       <button id="btnExportar">Exportar CSV</button>
       <button id="btnExportarJSON">Exportar JSON</button>
@@ -46,7 +46,7 @@
     <div id="status" aria-live="polite"></div>  
   </div>
 
-  <div class="footer">v1.3.x</div>
+  <small id="appVersion"></small>
 </div>
 
   <!-- <button id="btnExtraer">Extraer Orden</button>
