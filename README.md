@@ -98,56 +98,42 @@ Persistencia por paciente (UCI_\<rut>)
 
 ## 3.4 Flujo general de procesamiento y visualización
 
-```text
-┌──────────────────────────────────────────────┐
-│ Sistema clínico institucional / LIS          │
-│ (resultados visibles en la interfaz web)     │
-└──────────────────────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────┐
-│ Extensión Chrome                             │
-│ content.js                                   │
-│ - reconoce paciente, orden y resultados      │
-│ - captura registros visibles                 │
-└──────────────────────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────┐
-│ Normalización y canonicalización             │
-│ exams.js / cultures.js / matrix.js           │
-│ - alias de exámenes                          │
-│ - fechas y valores                           │
-│ - paneles especiales y cultivos              │
-└──────────────────────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────┐
-│ Persistencia local                           │
-│ chrome.storage.local                         │
-│ - almacenamiento por paciente (UCI_<rut>)    │
-│ - órdenes indexadas por hash                 │
-└──────────────────────────────────────────────┘
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-┌──────────────────────┐   ┌──────────────────────┐
-│ Viewer longitudinal  │   │ Resumen infeccioso   │
-│ viewer.js            │   │ viewer.js            │
-│ - matriz clínica     │   │ - lista cronológica  │
-│ - modales            │   │ - cultivos/paneles   │
-│ - impresión          │   │ - impresión          │
-└──────────────────────┘   └──────────────────────┘
-          │                       │
-          └───────────┬───────────┘
-                      ▼
-┌──────────────────────────────────────────────┐
-│ Exportación y portabilidad                   │
-│ export.js                                    │
-│ - CSV                                        │
-│ - JSON (backup / importación / traslado)     │
-└──────────────────────────────────────────────┘
+```mermaid
+---
+config
+---
+flowchart TD
+   a["`**Sistema clínico institucional / LIS**
+   (resultados visibles en la interfaz web)`"]
+   a --> b["` **Extensión Chrome**
+   _content.js_
+- reconoce paciente, orden y resultados
+- captura registros visibles `"]
+  b --> c["`**Normalización y canonicalización**
+_exams.js / cultures.js / matrix.js_
+- alias de exámenes
+- fechas y valores
+- paneles especiales y cultivos`"]
+  c --> d["`**Persistencia local**
+_chrome.storage.local_
+- almacenamiento por paciente (UCI_<rut>)
+- órdenes indexadas por hash `"]
+  d --> e["`**Viewer longitudinal**
+_viewer.js_
+- matriz clínica
+- modales
+- impresión `"]
+  d --> f["`**Resumen infeccioso**
+_viewer.js_
+- lista cronológica
+- cultivos/paneles `"]
+  f --> g["`**Exportación y portabilidad**
+_export.js_
+- CSV
+- JSON (backup / importación / traslado) `"]
+ e --> g
 ```
+
 
 ---
 
@@ -273,7 +259,6 @@ Se guarda en:
 chrome.storage.local
 Clave: UCI_<rut>
 Subclave: <hash>
-
 ```
 
 ### Paso 6 – Construcción de matriz
