@@ -272,9 +272,9 @@ Subclave: <hash>
 
 #### Ejemplo de visualizacion
 
-![Vista principal](images\main_screen1.png)
+![Vista principal](images/main_screen1.png)
 
-![Vista resumen infeccioso](images\main_screen2.png)
+![Vista resumen infeccioso](images/main_screen2.png)
 
 ### Paso 8 – Exportación y portabilidad de datos
 
