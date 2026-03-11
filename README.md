@@ -99,9 +99,6 @@ Persistencia por paciente (UCI_\<rut>)
 ## 3.4 Flujo general de procesamiento y visualización
 
 ```mermaid
----
-config
----
 flowchart TD
    a["`**Sistema clínico institucional / LIS**
    (resultados visibles en la interfaz web)`"]
@@ -133,7 +130,6 @@ _export.js_
 - JSON (backup / importación / traslado) `"]
  e --> g
 ```
-
 
 ---
 
@@ -223,9 +219,9 @@ Estado: versión estable con:
 
 ## 10. Flujo de Procesamiento de Datos
 
-### Paso 1 – Extracción
+### Paso 1 – Reconocimiento
 
-- ```content.js``` extrae:
+- ```content.js``` reconoce:
   - Paciente
   - Orden
   - Registros crudos
