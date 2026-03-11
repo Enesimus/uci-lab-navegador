@@ -22,11 +22,16 @@ const elStatus = $("status");
 
 const btnExtraer = $("btnExtraer");
 const btnExportar = $("btnExportar");
+const btnExportarJSON = $("btnExportarJSON");
+const btnImportarJSON = $("btnImportarJSON");
+const fileImportJSON = $("fileImportJSON");
 const btnVer = $("btnVer"); // aún disabled en html
 
 function setBusy(isBusy) {
   if (btnExtraer) btnExtraer.disabled = isBusy;
   if (btnExportar) btnExportar.disabled = isBusy;
+  if (btnExportarJSON) btnExportarJSON.disabled = isBusy;
+  if (btnImportarJSON) btnImportarJSON.disabled = isBusy;
   // btnVer no depende de busy; depende de si hay rut válido
 }
 
@@ -225,6 +230,71 @@ async function exportarCSV() {
   }
 }
 
+async function exportarJSON() {
+  setBusy(true);
+
+  try {
+    let rut = await obtenerRutActual();
+
+    if (!rut) {
+      setBusy(false);
+      showStatus("No hay paciente seleccionado para exportar.", "warn");
+      alert("No hay paciente seleccionado para exportar.");
+      return;
+    }
+
+    await exportarPacienteJSON(rut);
+
+    await refrescarPacienteDesdeRut(rut);
+    setBusy(false);
+    showStatus("✔ JSON generado.", "success");
+  } catch (e) {
+    console.error("Error exportando JSON:", e);
+    setBusy(false);
+    showStatus("Error al exportar JSON.", "error");
+    alert(`Error al exportar JSON.\n${e?.message || e}`);
+  }
+}
+
+function leerArchivoComoTexto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+
+    reader.readAsText(file, "utf-8");
+  });
+}
+
+async function importarJSONDesdeArchivo(file) {
+  if (!file) return;
+
+  setBusy(true);
+
+  try {
+    const contenido = await leerArchivoComoTexto(file);
+    const payload = JSON.parse(contenido);
+    const { rut, data } = validarBackupPacienteJSON(payload);
+
+    await guardar(rut, data);
+    await guardarRutActual(rut);
+
+    await refrescarPacienteDesdeRut(rut);
+    setVerEnabled(rut);
+
+    setBusy(false);
+    showStatus(`✔ JSON importado para ${rut}.`, "success", 4000);
+  } catch (e) {
+    console.error("Error importando JSON:", e);
+    setBusy(false);
+    showStatus("Error al importar JSON.", "error");
+    alert(`Error al importar JSON.\n${e?.message || e}`);
+  } finally {
+    if (fileImportJSON) fileImportJSON.value = "";
+  }
+}
+
 // ==== Init ====
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -254,5 +324,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnExportar?.addEventListener("click", () => {
     if (btnExportar.disabled) return;
     exportarCSV();
+  });
+
+  btnExportarJSON?.addEventListener("click", () => {
+    if (btnExportarJSON.disabled) return;
+    exportarJSON();
+  });
+
+  btnImportarJSON?.addEventListener("click", () => {
+    if (btnImportarJSON.disabled) return;
+    fileImportJSON?.click();
+  });
+
+  fileImportJSON?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await importarJSONDesdeArchivo(file);
   });
 });

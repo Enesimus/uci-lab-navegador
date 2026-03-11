@@ -95,6 +95,76 @@ function descargarCSV(nombreArchivo, contenidoCSV) {
   URL.revokeObjectURL(url);
 }
 
+function descargarJSON(nombreArchivo, data) {
+  if (!data) return;
+
+  const contenido = JSON.stringify(data, null, 2);
+  const blob = new Blob([contenido], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function construirBackupPacienteJSON(rut, data) {
+  return {
+    format: "uci-lab-extractor",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    patientKey: rut,
+    data
+  };
+}
+
+function validarBackupPacienteJSON(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Archivo JSON inválido.");
+  }
+
+  if (payload.format !== "uci-lab-extractor") {
+    throw new Error("El archivo no corresponde a UCI Lab Extractor.");
+  }
+
+  if (payload.version !== 1) {
+    throw new Error(`Versión de backup no soportada: ${payload.version}`);
+  }
+
+  if (!payload.data || typeof payload.data !== "object") {
+    throw new Error("El backup no contiene datos clínicos.");
+  }
+
+  const data = payload.data;
+  const rut = String(data?.paciente?.rut || payload.patientKey || "").trim();
+
+  if (!rut) {
+    throw new Error("El backup no contiene RUT del paciente.");
+  }
+
+  if (!data.ordenes || typeof data.ordenes !== "object") {
+    throw new Error("El backup no contiene órdenes válidas.");
+  }
+
+  return { rut, data };
+}
+
+async function exportarPacienteJSON(rut) {
+  const data = await obtener(rut);
+  if (!data) {
+    alert("No hay datos para este paciente");
+    return;
+  }
+
+  const payload = construirBackupPacienteJSON(rut, data);
+  const rutSafe = data?.paciente?.rut || rut;
+  descargarJSON(`UCI_${rutSafe}.json`, payload);
+}
+
 // Usa chrome.storage.local vía storage.js + construirMatrizClinica (async)
 async function exportarPacienteCSV(rut, opciones = {}) {
   const data = await obtener(rut);
