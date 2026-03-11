@@ -94,6 +94,55 @@ function normalizarResultadoMolecular(valor) {
   return raw;
 }
 
+function contieneDetectadoMolecular(valor) {
+  const t = String(valor || "").trim().toUpperCase();
+  return t === "DETECTADO" || t === "POSITIVO";
+}
+
+function resumirAntibioticos(antibioticos = [], max = 3) {
+  return (antibioticos || [])
+    .filter(x => x && x.antibiotico && (x.interp || x.raw))
+    .slice(0, max)
+    .map(x => `${x.antibiotico} ${x.interp || x.raw}`)
+    .join(", ");
+}
+
+function resumirCultivo(panel) {
+  if (!panel) return "NEGATIVO";
+
+  const aislados = Array.isArray(panel.aislados) ? panel.aislados : [];
+  if (aislados.length) {
+    const partes = aislados.map((a) => {
+      const trozos = [];
+
+      if (a?.microorganismo) trozos.push(a.microorganismo);
+      if (a?.recuento) trozos.push(a.recuento);
+
+      const atb = resumirAntibioticos(a?.antibioticos || []);
+      if (atb) trozos.push(atb);
+
+      return trozos.join("; ");
+    }).filter(Boolean);
+
+    if (partes.length) return partes.join(" | ");
+  }
+
+  const global = String(panel.resultadoGlobal || "").trim();
+  if (!global) return "NEGATIVO";
+
+  const g = global.toUpperCase();
+  if (
+    g === "NO DESARROLLO" ||
+    g === "NEGATIVO" ||
+    g === "NO SE OBSERVA DESARROLLO" ||
+    g === "SIN DESARROLLO"
+  ) {
+    return "NEGATIVO";
+  }
+
+  return global;
+}
+
 function esResultadoValido(r) {
   if (!r) return false;
 
@@ -650,4 +699,135 @@ return {
   paneles
 };
 
+}
+
+function construirResumenInfecciosoDesdeData(matriz, data) {
+  const items = [];
+
+  // 1) Cultivos: reutilizar paneles ya construidos por la vista base
+  Object.entries(matriz?.paneles?.cultivos || {}).forEach(([timestamp, bucket]) => {
+    Object.entries(bucket || {}).forEach(([estudioKey, panel]) => {
+      items.push({
+        timestamp,
+        fecha: timestamp,
+        tipo: "cultivo",
+        examen: panel?.displayName || panel?.estudioBase || panel?.estudio || estudioKey,
+        resumen: resumirCultivo(panel),
+        estudioKey
+      });
+    });
+  });
+
+  // 2) Moleculares + SARS + LCR: leer registros originales sin alterar la matriz base
+  const ordenes = Object.values(data?.ordenes || {});
+  for (const ord of ordenes) {
+    const fechaBase =
+      ord?.timestamp ||
+      ord?.fechaExtraccion ||
+      ord?.fecha ||
+      "";
+
+    const regs = Array.isArray(ord?.registros) ? ord.registros : [];
+
+    const bucketMolecular = {};
+    const bucketLCR = {};
+
+    for (const r of regs) {
+      if (!esResultadoValido(r)) continue;
+
+      const estRaw = String(r?.estudio || r?.Estudio || "").trim();
+      const pruebaRaw = String(r?.prueba || r?.Prueba || "").trim();
+      const valor = String(r?.valor ?? r?.Resultado ?? r?.resultado ?? "").trim();
+
+      const estUp = estRaw.toUpperCase();
+      const pruebaUp = pruebaRaw.toUpperCase();
+      const timestamp = r?.fechaValidacion || fechaBase || "";
+
+      if (!timestamp || !estRaw) continue;
+
+      // Paneles moleculares: resumir sólo detectados; si no hay, NEGATIVO
+      if (esEstudioMolecular(estUp)) {
+        if (!bucketMolecular[timestamp]) bucketMolecular[timestamp] = {};
+        if (!bucketMolecular[timestamp][estRaw]) {
+          bucketMolecular[timestamp][estRaw] = {};
+        }
+
+        if (pruebaUp && pruebaUp !== estUp && !esPruebaTipoMuestra(pruebaUp)) {
+          bucketMolecular[timestamp][estRaw][pruebaRaw] = normalizarResultadoMolecular(valor);
+        }
+        continue;
+      }
+
+      // PCR SARS simple
+      if (estUp === ESTUDIO_PCR_SARS) {
+        if (esPruebaTipoMuestra(pruebaUp)) continue;
+
+        // Evitar duplicados por líneas accesorias
+        if (pruebaUp && !pruebaUp.includes("SARS") && pruebaUp !== estUp) continue;
+
+        items.push({
+          timestamp,
+          fecha: timestamp,
+          tipo: "sars",
+          examen: "SARS COV-2",
+          resumen: contieneDetectadoMolecular(valor) ? "Detectado" : "NEGATIVO"
+        });
+        continue;
+      }
+
+      // Citoquímico LCR resumido
+      if (estUp === CITOQUIMICO_LCR_ESTUDIO) {
+        if (!bucketLCR[timestamp]) bucketLCR[timestamp] = {};
+        if (!bucketLCR[timestamp][estRaw]) bucketLCR[timestamp][estRaw] = {};
+
+        const clave = pruebaUp.replace(/\s+/g, " ").trim();
+        if (clave) bucketLCR[timestamp][estRaw][clave] = valor;
+      }
+    }
+
+    Object.entries(bucketMolecular).forEach(([timestamp, estudios]) => {
+      Object.entries(estudios).forEach(([estudio, resultados]) => {
+        const detectados = Object.entries(resultados)
+          .filter(([, v]) => contieneDetectadoMolecular(v))
+          .map(([k]) => k);
+
+        items.push({
+          timestamp,
+          fecha: timestamp,
+          tipo: "molecular",
+          examen: estudio,
+          resumen: detectados.length ? `Detectado: ${detectados.join(", ")}` : "NEGATIVO"
+        });
+      });
+    });
+
+    Object.entries(bucketLCR).forEach(([timestamp, estudios]) => {
+      Object.entries(estudios).forEach(([estudio, vals]) => {
+        const partes = [];
+        if (vals["LEUCOCITOS"]) partes.push(`Leucocitos ${vals["LEUCOCITOS"]}`);
+        if (vals["POLINUCLEARES"]) partes.push(`PMN ${vals["POLINUCLEARES"]}`);
+        if (vals["MONONUCLEARES"]) partes.push(`MN ${vals["MONONUCLEARES"]}`);
+        if (vals["PROTEINAS"]) partes.push(`Proteínas ${vals["PROTEINAS"]}`);
+        if (vals["GLUCOSA"]) partes.push(`Glucosa ${vals["GLUCOSA"]}`);
+
+        if (partes.length) {
+          items.push({
+            timestamp,
+            fecha: timestamp,
+            tipo: "citoquimico",
+            examen: estudio,
+            resumen: partes.join(", ")
+          });
+        }
+      });
+    });
+  }
+
+  items.sort((a, b) => {
+    const fa = new Date(String(a.timestamp).replace(" ", "T"));
+    const fb = new Date(String(b.timestamp).replace(" ", "T"));
+    return fa - fb;
+  });
+
+  return items;
 }

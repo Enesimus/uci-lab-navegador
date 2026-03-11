@@ -17,6 +17,7 @@ const state = {
   buscar: "",
   ocultarVacios: true,
   mostrarExtras: true,
+  vista: "base",
 
   // UI: modal de exámenes especiales
   modalMostrarTodo: false
@@ -271,9 +272,11 @@ function openOrinaModal(timestamp) {
   const sub = dlg.querySelector("#dlgSub");
   const body = dlg.querySelector("#dlgBody");
   const chk = dlg.querySelector("#dlgMostrarTodo");
+  const toolbar = chk.closest(".dlg-toolbar");
 
   titulo.textContent = "Orina completa";
   sub.textContent = (panel?.meta?.fechaValidacion || timestamp) ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}` : "";
+  if (toolbar) toolbar.style.display = "";
   chk.checked = !!state.modalMostrarTodo;
 
   const fisicoHtml = buildSectionHtml(panel.fisico, state.modalMostrarTodo);
@@ -321,7 +324,8 @@ function openCitoquimicoModal(timestamp, estudioKey) {
     : "";
 
   chk.checked = true;
-  chk.closest(".dlg-toolbar").style.display = "none";
+  const toolbar = chk.closest(".dlg-toolbar");
+  if (toolbar) toolbar.style.display = "none";
 
   const fisicoHtml = buildSectionHtml(panel.fisico, true);
   const celularHtml = buildSectionHtml(panel.celular, true);
@@ -448,9 +452,11 @@ function openCultivoModal(timestamp, estudioKey) {
   const sub = dlg.querySelector("#dlgSub");
   const body = dlg.querySelector("#dlgBody");
   const chk = dlg.querySelector("#dlgMostrarTodo");
+  const toolbar = chk.closest(".dlg-toolbar");
 
   titulo.textContent = panel.displayName ||estudioKey;
   sub.textContent = (panel?.meta?.fechaValidacion || timestamp) ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}` : "";
+  if (toolbar) toolbar.style.display = "";
   chk.checked = false;
   state.modalMostrarTodo = false;
 
@@ -527,7 +533,8 @@ function openHemogramaModal(timestamp, estudioKey = "FORMULA MANUAL") {
     : "";
 
   chk.checked = false;
-  chk.closest(".dlg-toolbar").style.display = "none";
+  const toolbar = chk.closest(".dlg-toolbar");
+  if (toolbar) toolbar.style.display = "none";
 
   body.innerHTML = buildHemogramaManualHtml(panel);
 
@@ -599,7 +606,8 @@ function openMolecularModal(timestamp, estudioKey) {
   sub.textContent = panel?.meta?.fechaValidacion || timestamp || "";
 
   chk.checked = false;
-  chk.closest(".dlg-toolbar").style.display = "none";
+  const toolbar = chk.closest(".dlg-toolbar");
+  if (toolbar) toolbar.style.display = "none";
 
   body.innerHTML = buildMolecularHtml(panel);
 
@@ -609,6 +617,11 @@ function openMolecularModal(timestamp, estudioKey) {
 function parseRutFromUrl() {
   const params = new URLSearchParams(location.search);
   return params.get("rut");
+}
+
+function parseVistaFromUrl() {
+  const params = new URLSearchParams(location.search);
+  return params.get("vista") || "base";
 }
 
 function setEstado(msg, isError = false) {
@@ -750,7 +763,11 @@ function construirPrintHeaderHTML(data, matriz, pageNum = null, totalPages = nul
   return `
     <div class="ph-row">
       <div class="ph-left">
-        <div class="ph-title">UCI Lab Extractor – Resumen longitudinal</div>
+                <div class="ph-title">${
+          state.vista === "infecciosa"
+            ? "UCI Lab Extractor – Resumen Infeccioso"
+            : "UCI Lab Extractor – Resumen Longitudinal"
+        }</div>
         <div class="ph-sub">
           <b>${escapeHtml(nombre)}</b> · RUT: <b>${escapeHtml(rut)}</b> · Órdenes: <b>${nOrdenes}</b>
         </div>
@@ -1018,6 +1035,99 @@ function renderTabla(matriz) {
   renderTablaEnContenedor(matriz, $("tablaWrap"), true);
 }
 
+function formatearFechaInfecciosa(timestamp) {
+  const h = formatearHeader(timestamp, "");
+  return `${h.fecha} ${h.hora}`.trim();
+}
+
+function construirResumenInfecciosoHTML(items) {
+  return `
+    <table class="matrix infectious-table">
+      <thead>
+        <tr>
+          <th class="corner">Fecha</th>
+          <th>Examen</th>
+          <th>Resultado</th>
+          <th>Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map((item) => `
+          <tr>
+            <td>${escapeHtml(formatearFechaInfecciosa(item.fecha || item.timestamp))}</td>
+            <td>${escapeHtml(item.examen || "")}</td>
+            <td class="${item.resumen === 'NEGATIVO' ? 'res-negativo' : (item.resumen?.startsWith('Detectado') ? 'res-positivo' : '')}">
+            ${escapeHtml(item.resumen || "")}</td>            
+            <td>
+              ${
+                item.tipo === "cultivo"
+                  ? `<button class="btn-mini" data-action="cultivo" data-ts="${escapeHtml(item.timestamp)}" data-est="${escapeHtml(item.estudioKey || item.examen || "")}">Ver</button>`
+                  : ""
+              }
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderResumenInfeccioso(matriz, data) {
+  const wrap = $("tablaWrap");
+  if (!wrap) return;
+
+  if (!matriz || !data) {
+    wrap.innerHTML = "";
+    return;
+  }
+
+  const items = (typeof construirResumenInfecciosoDesdeData === "function")
+    ? construirResumenInfecciosoDesdeData(matriz, data)
+    : [];
+
+  if (!items.length) {
+    wrap.innerHTML = `<div class="estado">No hay exámenes infecciosos para mostrar.</div>`;
+    return;
+  }
+
+  ensureInlineBtnStyle();
+
+  if (!document.getElementById("viewer-infectious-style")) {
+    const st = document.createElement("style");
+    st.id = "viewer-infectious-style";
+    st.textContent = `
+      .infectious-table{table-layout: fixed;width: 100%;}
+      .infectious-table th.corner{width: 90px;}
+      .infectious-table td:first-child{width: 110px;white-space: nowrap;}
+      .infectious-table th:nth-child(2){width: 200px;}
+      .infectious-table th:nth-child(4){width: 70px;text-align:center;}
+      .infectious-table td:nth-child(3){white-space: normal;line-height: 1.25;}
+      .infectious-table th.corner{width:100px !important;}
+      .res-negativo{color:#777;font-weight:500;}
+      .res-positivo{color:#8b0000;font-weight:600;}
+    `;
+    document.head.appendChild(st);
+  }
+
+  wrap.innerHTML = construirResumenInfecciosoHTML(items);
+
+  const table = wrap.querySelector("table");
+  if (!table) return;
+
+  table.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+
+    const action = btn.getAttribute("data-action");
+    const ts = btn.getAttribute("data-ts");
+    const est = btn.getAttribute("data-est") || "";
+
+    if (action === "cultivo") {
+      openCultivoModal(ts, est);
+    }
+  });
+}
+
 function detectarColumnasPorPagina() {
   // Carta y Oficio vertical comparten prácticamente el mismo ancho útil.
   // Usamos ancho CSS aproximado de 8.5in a 96dpi.
@@ -1114,6 +1224,11 @@ function construirVistaImpresion(matriz) {
 }
 
 function imprimirVistaPaginada() {
+  if (state.vista === "infecciosa") {
+    window.print();
+    return;
+  }
+
   const matriz = aplicarFiltros(state.matriz);
   if (!matriz) return;
 
@@ -1181,11 +1296,58 @@ async function cargarPaciente(rut) {
 
   state.matriz = matriz;
   renderInfo(data, matriz);
-  renderTabla(aplicarFiltros(matriz));
+
+  if (state.vista === "infecciosa") {
+    renderResumenInfeccioso(matriz, data);
+  } else {
+    renderTabla(aplicarFiltros(matriz));
+  }
+
   setEstado("");
 }
 
 async function init() {
+  state.vista = parseVistaFromUrl();
+
+  const btnResumen = $("btnResumenInfeccioso");
+  if (btnResumen) {
+    if (state.vista === "infecciosa") {
+      btnResumen.textContent = "Volver a vista normal";
+      btnResumen.addEventListener("click", () => {
+        if (!state.rut) {
+          window.location.href = "viewer.html";
+          return;
+        }
+        const url = `viewer.html?rut=${encodeURIComponent(state.rut)}`;
+        window.location.href = url;
+      });
+    } else {
+      btnResumen.textContent = "Resumen infeccioso";
+      btnResumen.addEventListener("click", () => {
+        if (!state.rut) return;
+        const url = `viewer.html?rut=${encodeURIComponent(state.rut)}&vista=infecciosa`;
+
+        const win = window.open(url, "uciLabResumenInfeccioso");
+        if (win) win.focus();
+      });
+    }
+  }
+
+  if (state.vista === "infecciosa") {
+    document.title = "UCI Lab Viewer – Resumen infeccioso";
+
+    const filtros = document.querySelector(".filters");
+    if (filtros) filtros.style.display = "none";
+
+    const chkOcultar = $("chkOcultarVacios");
+    const chkExtras = $("chkMostrarExtras");
+    const txtBuscar = $("txtBuscarExamen");
+
+    if (chkOcultar) chkOcultar.closest("label")?.setAttribute("style", "display:none");
+    if (chkExtras) chkExtras.closest("label")?.setAttribute("style", "display:none");
+    if (txtBuscar) txtBuscar.style.display = "none";
+  }
+
   $("btnCargar").addEventListener("click", async () => {
     const rut = $("txtRut").value.trim();
     if (rut) await cargarPaciente(rut);
@@ -1193,7 +1355,7 @@ async function init() {
 
   $("selPaciente").addEventListener("change", async (e) => {
     const rut = e.target.value;
-     $("txtRut").value = rut || "";
+    $("txtRut").value = rut || "";
     if (rut) await cargarPaciente(rut);
   });
 
@@ -1207,8 +1369,8 @@ async function init() {
   });
 
   $("btnImprimir").addEventListener("click", () => {
-  imprimirVistaPaginada();
-});
+    imprimirVistaPaginada();
+  });
 
   $("btnBorrar").addEventListener("click", async () => {
     if (!state.rut) return;
@@ -1229,7 +1391,11 @@ async function init() {
     state.matriz = null;
     await refrescarListaPacientes();
     renderInfo(null, null);
-    renderTabla(null);
+    if (state.vista === "infecciosa") {
+      renderResumenInfeccioso(null, null);
+    } else {
+      renderTabla(null);
+    }
     $("txtRut").value = "";
     $("selPaciente").value = "";
     setEstado("Paciente borrado.");
@@ -1237,17 +1403,23 @@ async function init() {
 
   $("txtBuscarExamen").addEventListener("input", (e) => {
     state.buscar = e.target.value || "";
-    renderTabla(aplicarFiltros(state.matriz));
+    if (state.vista === "base") {
+      renderTabla(aplicarFiltros(state.matriz));
+    }
   });
 
   $("chkOcultarVacios").addEventListener("change", (e) => {
     state.ocultarVacios = !!e.target.checked;
-    renderTabla(aplicarFiltros(state.matriz));
+    if (state.vista === "base") {
+      renderTabla(aplicarFiltros(state.matriz));
+    }
   });
 
   $("chkMostrarExtras").addEventListener("change", (e) => {
     state.mostrarExtras = !!e.target.checked;
-    renderTabla(aplicarFiltros(state.matriz));
+    if (state.vista === "base") {
+      renderTabla(aplicarFiltros(state.matriz));
+    }
   });
 
   const rutUrl = parseRutFromUrl();
