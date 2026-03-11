@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "UCI Lab Extractor",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Extracción y estructuración longitudinal de exámenes UCI, con opción de visualización y exportación para análisis posterior.",
   "icons": {
     "16": "images/icon-16.png",

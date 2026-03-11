@@ -6,6 +6,46 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ---
 
+## [1.4] - 2026-03-11
+
+### Added
+
+- Nueva **vista "Resumen infeccioso"** para seguimiento clínico de cultivos y paneles moleculares.
+- Botón **"Resumen infeccioso"** en el viewer que abre una visualización especializada.
+- Tabla cronológica optimizada para infecciones con columnas:
+  - Fecha
+  - Examen
+  - Resultado
+  - Detalle
+- Renderizado selectivo de paneles moleculares mostrando **solo resultados positivos**.
+- Paneles sin detecciones ahora se muestran como **NEGATIVO** para mejorar legibilidad clínica.
+- Coloreado clínico de resultados:
+  - `Detectado` → rojo oscuro
+  - `NEGATIVO` → gris tenue
+- Mejora de layout para impresión del resumen infeccioso.
+
+### Improved
+
+- Optimización del ancho de columnas en la vista infecciosa para priorizar el campo **Resultado**.
+- Reutilización de ventana del resumen infeccioso (evita abrir múltiples ventanas).
+- Mejor manejo de modales reutilizando el diálogo principal sin pérdida de toolbar.
+- Separación clara entre:
+  - **Vista longitudinal completa**
+  - **Vista infecciosa resumida**
+
+### Data portability
+
+- **Exportación completa de paciente a JSON** (backup portable).
+- **Importación de paciente desde JSON**.
+- Formato de respaldo versionado:
+
+```json
+{
+  "format": "uci-lab-extractor",
+  "version": 1
+}
+```
+
 ## [1.2] - 2026-03
 
 ### Added
