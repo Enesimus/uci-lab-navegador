@@ -1,10 +1,11 @@
-// matrix.js
 /*
-UCI Lab Extractor
+UCI Lab Navegador
 Copyright (C) 2026 Juan Sepúlveda Sepúlveda
 
 Licensed under the GNU General Public License v3.0
 */
+
+// matrix.js
 
 // Helpers
 function normTxt(s) {

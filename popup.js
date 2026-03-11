@@ -1,16 +1,11 @@
 /*
-UCI Lab Extractor
+UCI Lab Navegador
 Copyright (C) 2026 Juan Sepúlveda Sepúlveda
 
 Licensed under the GNU General Public License v3.0
 */
 
-// popup.js (1.2.1 UX) — versión coherente con storage async + hash-based
-// Requiere (en popup.html): exams.js, storage.js, matrix.js, export.js, popup.js
-// - Alerts SOLO para errores
-// - Éxito por status no bloqueante
-// - Lee/escribe rut actual vía chrome.storage.local (storage.js)
-// - Upsert de órdenes por hash
+// popup.js 
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,6 +29,20 @@ function setBusy(isBusy) {
   if (btnImportarJSON) btnImportarJSON.disabled = isBusy;
   // btnVer no depende de busy; depende de si hay rut válido
 }
+
+function aplicarVersionApp() {
+  const el = document.getElementById("appVersion");
+  if (!el) return;
+
+  try {
+    const version = chrome?.runtime?.getManifest?.()?.version || "";
+    el.textContent = version ? `v${version}` : "";
+  } catch {
+    el.textContent = "";
+  }
+}
+
+aplicarVersionApp();
 
 function setVerEnabled(rut) {
   if (!btnVer) return;

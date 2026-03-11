@@ -1,3 +1,10 @@
+/*
+UCI Lab Navegador
+Copyright (C) 2026 Juan Sepúlveda Sepúlveda
+
+Licensed under the GNU General Public License v3.0
+*/
+
 // content.js (patched para soportar Estudio/Estado/Nota y resultados vacíos en cultivos)
 console.log("[UCI Lab Extractor] content.js cargado", chrome.runtime?.id);
 

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "UCI Lab Extractor",
+  "name": "UCI Lab Navegador",
   "version": "1.4.0",
-  "description": "Extracción y estructuración longitudinal de exámenes UCI, con opción de visualización y exportación para análisis posterior.",
+  "description": "Visualización longitudinal de exámenes de laboratorio y resumen infeccioso para apoyo clínico en Unidades de Cuidados Intensivos. \n Extensible a otras unidades clínicas hospitalarias.",
   "icons": {
     "16": "images/icon-16.png",
     "32": "images/icon-32.png",
@@ -23,7 +23,7 @@
 
   "action": {
     "default_popup": "popup.html",
-    "default_title": "UCI Extractor"
+    "default_title": "UCI Lab Navegador"
   },
 
   "content_scripts": [

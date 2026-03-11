@@ -1,5 +1,5 @@
 /*
-UCI Lab Extractor
+UCI Lab Navegador
 Copyright (C) 2026 Juan Sepúlveda Sepúlveda
 
 Licensed under the GNU General Public License v3.0
@@ -43,6 +43,19 @@ const ORINA_SIEMPRE = new Set([
   "CUERPOS CETONICOS",
   "BILIRRUBINA"
 ]);
+
+function aplicarVersionApp() {
+  const el = document.getElementById("appVersion");
+  if (!el) return;
+
+  try {
+    const manifest = chrome?.runtime?.getManifest?.();
+    const version = manifest?.version || "";
+    el.textContent = version ? `v${version}` : "";
+  } catch {
+    el.textContent = "";
+  }
+}
 
 function formatearNombreFila(examen) {
   return String(examen || "").replace(/_(A|V)$/, "");
@@ -1308,6 +1321,8 @@ async function cargarPaciente(rut) {
 
 async function init() {
   state.vista = parseVistaFromUrl();
+
+  aplicarVersionApp();
 
   const btnResumen = $("btnResumenInfeccioso");
   if (btnResumen) {
