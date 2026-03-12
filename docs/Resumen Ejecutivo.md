@@ -1,6 +1,6 @@
 # Resumen Ejecutivo
 
-## UCI Lab Extractor
+## UCI Lab Navegador
 
 Visualización longitudinal de exámenes de laboratorio para apoyo clínico en UCI Pediátrica
 
@@ -34,13 +34,13 @@ Esto genera:
 - tiempo de revisión prolongado
 - riesgo de pasar por alto cambios clínicamente relevantes
 
-La necesidad de una visualización longitudinal clara es particularmente crítica en unidades de paciente crítico.
+La necesidad de una visualización longitudinal clara es particularmente útil en unidades de paciente crítico.
 
 ### 2. Solución propuesta
 
-UCI Lab Extractor es una herramienta de apoyo clínico que permite:
+UCI Lab Navegador es una herramienta de apoyo clínico que permite:
 
-- extraer resultados de laboratorio desde la interfaz del LIS
+- reconocer resultados de laboratorio desde la interfaz del LIS
 - organizarlos longitudinalmente por paciente
 - visualizar la evolución de parámetros en una matriz clínica
 
@@ -57,7 +57,7 @@ Esto facilita una lectura clínica rápida y estructurada.
 
 La herramienta actualmente permite:
 
-- extracción de órdenes de laboratorio desde el LIS
+- reconocimiento de órdenes de laboratorio desde el LIS
 - almacenamiento local por paciente
 - visualización longitudinal de resultados
 - visualización estructurada de estudios especiales
@@ -99,6 +99,6 @@ El modelo permite evolucionar hacia:
 
 ### 7. Estado actual
 
-Versión actual: 1.3.x
+Versión actual: 1.4.1
 
 El proyecto se encuentra en etapa funcional inicial y se presenta para evaluación de su potencial utilidad clínica y posibles líneas de desarrollo institucional.

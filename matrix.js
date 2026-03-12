@@ -71,7 +71,7 @@ function construirMarkerCultivo(estudioKey) {
 const ESTUDIOS_MOLECULARES = new Set([
   "PANEL RESPIRATORIO",
   "PANEL PCR GASTROINTESTINAL",
-  "PANEL PCR MENINGEO",
+  "PANEL PCR MENINGITIS",
   "PANEL PCR NEUMONIA"
 ]);
 
