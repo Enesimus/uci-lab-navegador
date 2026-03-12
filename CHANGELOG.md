@@ -6,6 +6,17 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ---
 
+## [1.4.1] - 2026-03-12
+
+### Improved
+
+- Definición de ruta de trabajo
+  - Incorporar Releases desde GitHub para difusión
+- Cambio de nombre de Extractor a Navegador
+- Actualización de Resumen Ejecutivo
+
+---
+
 ## [1.4] - 2026-03-11
 
 ### Added

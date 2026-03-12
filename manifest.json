@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "UCI Lab Navegador",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Visualización longitudinal de exámenes de laboratorio y resumen infeccioso para apoyo clínico en Unidades de Cuidados Intensivos. \n Extensible a otras unidades clínicas hospitalarias.",
   "icons": {
     "16": "images/icon-16.png",

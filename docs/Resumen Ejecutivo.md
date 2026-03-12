@@ -99,6 +99,6 @@ El modelo permite evolucionar hacia:
 
 ### 7. Estado actual
 
-Versión actual: 1.4.x
+Versión actual: 1.4.1
 
 El proyecto se encuentra en etapa funcional inicial y se presenta para evaluación de su potencial utilidad clínica y posibles líneas de desarrollo institucional.
