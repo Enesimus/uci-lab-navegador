@@ -1,11 +1,13 @@
-# UCI Lab Navegador – Documentación del Proyecto
+# UCI Lab Navegador – Project Documentation
 
-Proyecto desarrollado por  
+Project developed by  
 **Dr. Juan Sepúlveda Sepúlveda**
 
-Visualización longitudinal de exámenes de laboratorio y resumen infeccioso para apoyo clínico en Unidades de Cuidados Intensivos.
+Longitudinal visualization of laboratory results and infectious summaries to support clinical work in Intensive Care Units.
 
-La arquitectura permite su extensión a otras unidades clínicas hospitalarias.
+The architecture allows extension to other hospital clinical units.
+
+🇬🇧 English | 🇪🇸 [Español](README.es.md)
 
 ![GPL v3 License badge showing blue background with white text](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
@@ -24,61 +26,55 @@ Commercial integration into proprietary laboratory information systems (LIS) may
 
 ---
 
-Este proyecto está licenciado bajo la GNU General Public License v3.0 (GPL-3.0)
+## 1. Overview
 
-Autor: Juan Sepúlveda Sepúlveda
-Año: 2026
+UCI Lab Navegador is a Chrome extension designed to:
 
-Este software fue desarrollado como una iniciativa clínica-académica para la visualización longitudinal de los datos de laboratorio de una UCI Pediátrica.
+- Recognize laboratory results from institutional clinical systems.
+- Structure laboratory data longitudinally per patient.
+- Visualize results in a clinical matrix format.
+- Allow export and printing of structured data.
+- Enable future automated detection of clinically relevant changes.
+- Generate reports that facilitate interpretation of clinical evolution (tables, graphs) for clinical documentation, patient transfer summaries, or multidisciplinary discussions.
 
-La integración comercial en Sistemas de Información de Laboratorio (LIS) o su redistribución como parte de software de fuente cerrada requiere la autorización explícita del autor.
-
----
-
-## 1. Descripción General
-
-UCI Lab Navegador es una extensión de Chrome diseñada para:
-
-- Reconocer exámenes de laboratorio desde el sistema clínico institucional.
-- Estructurarlos longitudinalmente por paciente.
-- Visualizarlos en formato matricial clínico.
-- Permitir exportación e impresión.
-- Evolucionar hacia análisis automático de cambios clínicamente relevantes.
-- Generar reportes que faciliten la comprensión de la evolución clínica (gráficas, tablas) para la confección de resúmenes clínicos (evolución, traslado o para reuniones clínicas).
-
-El objetivo es transformar información fragmentada en una vista clínica longitudinal clara, rápida y usable.
+The objective is to transform fragmented laboratory data into a clear and clinically usable longitudinal view.
 
 ---
 
-## 2. Contexto Clínico
+## 2. Clinical Context
 
-- Entorno: Unidad de Cuidados Intensivos Pediátricos como punto de partida. Pudiera extenderse a cualquier unidad de paciente hospitalizado, o en atencion ambulatoria cuando se requiera un seguimiento longitudinal de examenes.
-- Necesidad: Visualización rápida de tendencias y evolución de parámetros.
-- Problema actual: Sistemas institucionales presentan resultados en forma episódica, no longitudinal.
+Environment: Pediatric Intensive Care Unit (PICU) as the initial development setting.  
+The architecture allows extension to other inpatient units or ambulatory settings where longitudinal laboratory follow-up is required.
 
-La herramienta busca reducir:
+Current problem:
 
-- Carga cognitiva.
-- Tiempo de navegación.
-- Riesgo de omitir cambios relevantes.
+Most institutional laboratory systems present results episodically rather than longitudinally.
+
+This creates several challenges:
+
+- Increased cognitive load
+- Time-consuming navigation
+- Risk of missing clinically relevant trends
+
+The tool aims to reduce these limitations.
 
 ---
 
-## 3. Arquitectura Técnica Actual
+## 3. Current Technical Architecture
 
-El sistema utiliza un modelo de persistencia por paciente que permite reconstruir la historia longitudinal de exámenes.
+The system uses a patient-based persistence model that reconstructs the longitudinal laboratory history.
 
-### 3.1 Tipo de aplicación
+### 3.1 Application Type
 
-Extensión Chrome (Manifest V3).
+Chrome Extension (Manifest V3)
 
-### 3.2 Almacenamiento
+### 3.2 Storage
 
 ```chrome.storage.local```
 
-Persistencia por paciente (UCI_\<rut>)
+Persistence perr patient: (UCI_\<rut>)
 
-### 3.3 Modelo de datos
+### 3.3 Data Model
 
 ``` JSON
 
@@ -100,210 +96,192 @@ Persistencia por paciente (UCI_\<rut>)
 
 ```mermaid
 flowchart TD
-   a["`**Sistema clínico institucional / LIS**
-   (resultados visibles en la interfaz web)`"]
-   a --> b["` **Extensión Chrome**
-   _content.js_
-- reconoce paciente, orden y resultados
-- captura registros visibles `"]
-  b --> c["`**Normalización y canonicalización**
-_exams.js / cultures.js / matrix.js_
-- alias de exámenes
-- fechas y valores
-- paneles especiales y cultivos`"]
-  c --> d["`**Persistencia local**
-_chrome.storage.local_
-- almacenamiento por paciente (UCI_<rut>)
-- órdenes indexadas por hash `"]
-  d --> e["`**Viewer longitudinal**
-_viewer.js_
-- matriz clínica
-- modales
-- impresión `"]
-  d --> f["`**Resumen infeccioso**
-_viewer.js_
-- lista cronológica
-- cultivos/paneles `"]
-  f --> g["`**Exportación y portabilidad**
-_export.js_
-- CSV
-- JSON (backup / importación / traslado) `"]
+   a["`**Clinical System / LIS**
+   (web interface results)`"]
+   a --> b["` **Chrome Extension**
+   _content.js_`"]
+  b --> c["`**Normalization layer**
+_exams.js / cultures.js / matrix.js_`"]
+  c --> d["`**Local persitence**
+_chrome.storage.local_`"]
+  d --> e["`**Longitudinal Viewer**
+_viewer.js_`"]
+  d --> f["`**Infectious summary**
+_viewer.js_`"]
+  f --> g["`**Export layer**
+_export.js_`"]
  e --> g
 ```
 
 ---
 
-## 4. Fases del Proyecto
+## 4. Project Phases
 
-### Fase 1 – Visualización clínica longitudinal
+### Phase 1 – Longitudinal Clinical Visualization
 
-- Vista HTML longitudinal
-- Sidebar
-- Impresión
-- Mejora visual del encabezado
+- Longitudinal HTML matrix
+- Printing features
+- Header visualization improvements
 
-### Fase 2 – Soporte para estudios especiales (cultivos y paneles moleculares)
+### Phase 2 – Support for Special Studies
 
-- Modelo distinto al matricial
-- Visualización específica
-- Estructura jerárquica
+- Cultures
+- Molecular panels
+- Hierarchical visualization models
 
-### Fase 3 – Capa de análisis clínico automatizado
+### Phase 3 – Automated Clinical Analysis Layer
 
-- Detección de cambios significativos
-- Resaltado automático
-- Indicadores visuales
-- Reglas configurables
-- Creación de gráficas
-
----
-
-## 5. Roadmap General
-
-- Consolidación UX
-- Modularización de visualización
-- Soporte estudios complejos
-- Capa de análisis clínico
-- Posible escalabilidad multiusuario
+- Detection of significant changes
+- Automatic highlighting
+- Visual indicators
+- Configurable rules
+- Graph generation
 
 ---
 
-## 6. Principios de Diseño
+## 5. Roadmap
 
-- Prioridad clínica sobre técnica.
-- Minimizar ruido visual.
-- Reducir la fricción cognitiva durante la revisión clínica.
-- Transparencia en el procesamiento de datos.
-- No alterar datos originales del HIS.
-- Procesamiento completamente local.
-
----
-
-## 7. Seguridad y Privacidad
-
-- No requiere credenciales adicionales ni acceso directo a bases de datos institucionales.
-- No envía datos a servidores externos.
-- Procesamiento 100% local.
-- No almacena información fuera del navegador del usuario.
-- No modifica registros institucionales.
+- UX consolidation
+- Visualization modularization
+- Advanced laboratory panel support
+- Automated clinical analysis layer
+- Potential multi-user scalability
 
 ---
 
-## 8. Reconocimiento de Desarrollo Asistido
+## 6. Design Principles
 
-Este proyecto fue desarrollado con asistencia técnica de ChatGPT (OpenAI), utilizado como herramienta de apoyo en:
-
-- Arquitectura técnica
-- Depuración
-- Diseño de experiencia de usuario
-- Modelado de datos
-- Planificación de roadmap
-
-La dirección clínica, conceptual y las decisiones funcionales corresponden al autor del proyecto.
+- Clinical priorities over technical complexity
+- Minimal visual noise
+- Reduced cognitive friction during clinical review
+- Transparency in data processing
+- No alteration of original HIS/LIS data
+- Fully local processing
 
 ---
 
-## 9. Estado Actual
+## 7. Security and Privacy
+
+- No additional credentials required
+- No direct access to institutional databases
+- No external data transmission
+- Processing is fully local
+- No modification of institutional records
+
+---
+
+## 8. Assisted Development Acknowledgment
+
+This project was developed with technical assistance from ChatGPT (OpenAI), used as a support tool for:
+
+- Technical architecture
+- Debugging
+- UX design
+- Data modeling
+- Roadmap planning
+
+Clinical direction, conceptual design, and functional decisions belong to the project author.
+
+---
+
+## 9. Current Status
 
 Versión: 1.4
 
-Estado: versión estable con:
+Stable version including:
 
-- visualización longitudinal de exámenes
-- soporte para cultivos y estudios especiales
-- resumen infeccioso
-- exportación CSV
-- exportación e importación JSON para respaldo y portabilidad de datos
+- longitudinal laboratory visualization
+- culture and special study support
+- infectious summary
+- CSV export
+- JSON export/import for data portability and backup
 
 ---
 
-## 10. Flujo de Procesamiento de Datos
+## 10. Data Processing Flow
 
-### Paso 1 – Reconocimiento
+### Step 1 – Recognition
 
-- ```content.js``` reconoce:
-  - Paciente
-  - Orden
-  - Registros crudos
+ ```content.js``` identifies:
+  
+- patient
+- laboratory order
+- raw result records
 
-### Paso 2 – Normalización
+### Step 2 - Normalization
 
-- Alias mapping de exámenes
-- Normalización de fecha
-- Normalización numérica
-- Unificación semántica (ej. Lactato)
+- exam alias mapping
+- date normalization
+- numeric normalization
+- semantic unification (e.g. Lactate)
 
-### Paso 3 – Canonicalización
+### Step 3 - Canonicalization
 
-Se construye una representación determinística de la orden.
+A deterministic order representation is created.
 
-### Paso 4 – Hash
+### Step 4 - Hash Generation
 
-Se calcula:
+Primary: SHA-256
+Fallback: FNV-1a
 
-- SHA-256 (principal)
-- FNV-1a (fallback)
+The hash becomes the unique key.
 
-El hash se convierte en clave única.
-
-### Paso 5 – Persistencia
-
-Se guarda en:
+### Step 5 - Persistence
 
 ``` YAML
 
 chrome.storage.local
-Clave: UCI_<rut>
-Subclave: <hash>
+Key: UCI_<rut>
+Subkey: <hash>
 ```
 
-### Paso 6 – Construcción de matriz
+### Step 6 - Matrix Construction
 
-- Se ordenan columnas cronológicamente
-- Se construyen filas según MAP_EXAMENES
-- Se agregan extras dinámicos
+- chronological column ordering
+- exam rows defined by MAP_EXAMENES
+- dynamic rows for additional parameters
 
-### Paso 7 – Visualización
+### Step 7 - Visualization
 
-- Agrupación por día
-- Highlight última columna
-- Alineación numérica
-- Separadores visuales
+- day grouping
+- latest column highlight
+- numeric alignment
+- visual separators
 
-#### Ejemplo de visualizacion
+#### Visualization example
 
-![Vista principal](images\main_screen1.png)
+![Main view](images/main_screen1.png)
 
-![Vista resumen infeccioso](images\main_screen2.png)
+![Infectious summary view](images/main_screen2.png)
 
-### Paso 8 – Exportación y portabilidad de datos
+### Step 8 – Export and data portability
 
-El sistema permite exportar los datos procesados del paciente en distintos formatos.
+The system allows export processed patient data in different formats.
 
-#### Exportación CSV
+#### CSV Export
 
-Se genera una matriz bidimensional que incluye:
+The system generates a bidimensional matrix that includes:
 
-- Metadata del paciente
-- Filas de exámenes
-- Columnas cronológicas
-- Fila de verificación HASH
+- patient metadata
+- exam rows
+- chronologically ordered columns
+- HASH verification row
 
-Este formato está orientado a:
+This format is intended for:
 
-- revisión externa
-- generación de reportes
-- análisis tabular
+- external review
+- report generation
+- tabular analysis
 
-#### Exportación JSON
+#### JSON Export
 
-La versión 1.4 incorpora exportación completa del modelo de datos del paciente en formato JSON.
+Version 1.4 introduces full export of the patient's data model in JSON format.
 
-Estructura del archivo exportado:
+Structure of the exported file:
 
 ```json
 {
-  "format": "uci-lab-extractor",
+  "format": "uci-lab-navegador",
   "version": 1,
   "exportedAt": "...",
   "patientKey": "...",
@@ -311,73 +289,70 @@ Estructura del archivo exportado:
 }
 ```
 
-### Importación JSON
+#### JSON Import
 
-El sistema también permite importar archivos JSON previamente exportados.
+The system also allows importing previously exported JSON files.
 
-Durante la importación se valida:
+During the import process, the system validates:
 
-- formato del archivo
-- versión del esquema
-- existencia del RUT del paciente
-- estructura de órdenes clínicas
+- file format
+- schema version
+- presence of the patient identifier (RUT)
+- structure of clinical orders
 
-Una vez validado, el paciente se reconstruye en:
+Once validated, the patient data is reconstructed in:
 
 ```chrome.storage.local```
 
-Esto permite trasladar información entre distintos equipos sin depender del acceso directo al sistema LIS.
-
-<!-- >💡 **Nota**: los permisos de acceso en el ```manifest.json``` para intranet como en acceso externo son:
->
-> ``` JSON
->"host_permissions": [
->  "http://200.72.31.213/*",
->  "http://10.6.127.136/*"
->],
->"content_scripts": [
->  {
->    "matches": [
->      "http://200.72.31.213/GestionIntegrada/*",
->      "https://10.6.127.136/GestionIntegrada/*"
->    ],
->    "js": ["content.js"]
->  }
->]
->``` -->
+This allows transferring information between different computers without requiring direct access to the LIS system.
 
 ---
 
-## 11. Impacto Clínico Esperado
+## 11. Expected Clinical Impact
 
-La herramienta busca mejorar la interpretación longitudinal de los exámenes de laboratorio en pacientes hospitalizados, especialmente en entornos de alta complejidad como las Unidades de Cuidados Intensivos.
+The tool aims to improve longitudinal interpretation of laboratory data in hospitalized patients, particularly in high-complexity environments such as Intensive Care Units.
 
-Los beneficios clínicos esperados incluyen:
+Expected benefits include:
 
-- **Mejor visualización de tendencias**: permite observar cambios progresivos en parámetros de laboratorio que pueden pasar desapercibidos en visualizaciones episódicas tradicionales.
-- **Reducción de carga cognitiva**: al agrupar y estructurar los resultados longitudinalmente, disminuye el tiempo requerido para reconstruir la evolución clínica de un paciente.
-- **Apoyo al seguimiento de procesos infecciosos**: la visualización integrada de cultivos y paneles moleculares facilita la identificación rápida de patógenos detectados y su evolución en el tiempo.
-- **Facilitación de la comunicación clínica**: la exportación e impresión de matrices longitudinales permite generar resúmenes claros para discusiones clínicas, traslados de pacientes o reuniones de equipo.
-- **Potencial para análisis clínico automatizado**: la arquitectura del proyecto permite incorporar en el futuro reglas de detección de cambios clínicamente relevantes y generación automática de alertas o visualizaciones analíticas.
-
-En conjunto, el objetivo es transformar datos de laboratorio presentados de forma fragmentada en una representación longitudinal comprensible que facilite la toma de decisiones clínicas.
+- Improved trend visualization
+- Reduced cognitive load
+- Better monitoring of infectious processes
+- Improved communication during clinical rounds
+- Future support for automated clinical analysis
 
 ---
 
-## Disclaimer
+## 12. Clinical Use Case
+
+In pediatric intensive care units (PICU), patients frequently undergo multiple laboratory tests per day. Laboratory information systems (LIS) typically present results organized by individual test reports, which makes longitudinal interpretation of multiple parameters difficult.
+
+For example, during the clinical review of a patient with septic shock, the clinician may need to simultaneously evaluate trends in lactate, arterial blood gases, inflammatory markers, renal function, and hematologic parameters across several days.
+
+In the standard LIS interface, these results are distributed across multiple reports, requiring the clinician to manually integrate information from different screens.
+
+UCI Lab Navegador reorganizes these results into a single longitudinal matrix centered on the patient, where each column represents a sampling time and each row corresponds to a laboratory parameter or clinical
+panel. This visualization facilitates rapid identification of trends and supports clinical interpretation during bedside rounds.
+
+---
+
+## 13. Citation
+
+If you use this software in clinical work, research,
+or derivative projects, please cite:
+
+Sepúlveda J.  
+**UCI Lab Navegador: Visualización longitudinal de exámenes de laboratorio para apoyo clínico en UCI Pediátrica.**  
+Open-source software project.  
+Available at: [https://github.com/Enesimus/uci-lab-navegador](https://github.com/Enesimus/uci-lab-navegador)
+
+---
+
+## 14. Disclaimer
 
 This tool does not modify or interfere with any laboratory information system. It operates exclusively at the user interface level and stores data locally.
 
 This tool is intended as a clinical support visualization utility and not as a diagnostic decision system.
 
 The author assumes no responsibility for clinical decisions derived from its use.
-
----
-
-Esta herramienta no modifica ni interfiere con ningún sistema de información de laboratorio. Opera exclusivamente en el nivel de interfase de usuario y almacena datos localmente.
-
-Esta herramienta está pensada como una utilidad de visualización de apoyo clínico y no como un sistema de decisión diagnóstica.
-
-El autor no se responsabiliza por decisiones clínicas derivadas de su uso.
 
 ---
