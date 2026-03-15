@@ -1,8 +1,8 @@
 body { 
   font-family: system-ui, Arial, sans-serif; 
   margin: 0; 
-  padding: 0 15px;
-  padding-top: 15px !important;
+  padding: 0 10px;
+  padding-top: 10px !important;
 }
 .topbar { 
   position: sticky; 
@@ -275,7 +275,7 @@ td.empty {
   @page {
     /* No forzamos tamaño: el navegador podrá usar Carta u Oficio.
        En ambos casos en vertical el ancho útil es equivalente. */
-    margin: 12mm;
+    margin: 10mm;
   }
 
   body {
@@ -283,13 +283,27 @@ td.empty {
     padding: 0 !important;
   }
 
-  /* Ocultar UI normal y la tabla interactiva original */
+  /* Ocultar UI normal */
   .topbar,
   .estado,
-  details.filters,
-  #tablaWrap {
+  details.filters {
     display: none !important;
   }
+
+  /* En vista base, se oculta la tabla original porque se reemplaza por .print-pages */
+body.vista-base #tablaWrap {
+  display: none !important;
+}
+
+/* En vista infecciosa, la tabla real sí debe imprimirse */
+body.vista-infecciosa #tablaWrap {
+  display: block !important;
+  max-height: none !important;
+  max-width: none !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+}
 
   /* Encabezado general del documento */
   .print-header {

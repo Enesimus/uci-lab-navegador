@@ -1350,10 +1350,11 @@ async function init() {
 
   if (state.vista === "infecciosa") {
     document.title = "UCI Lab Viewer – Resumen infeccioso";
+    document.body.classList.add("vista-infecciosa");
 
     const filtros = document.querySelector(".filters");
     if (filtros) filtros.style.display = "none";
-
+    
     const chkOcultar = $("chkOcultarVacios");
     const chkExtras = $("chkMostrarExtras");
     const txtBuscar = $("txtBuscarExamen");
@@ -1361,7 +1362,10 @@ async function init() {
     if (chkOcultar) chkOcultar.closest("label")?.setAttribute("style", "display:none");
     if (chkExtras) chkExtras.closest("label")?.setAttribute("style", "display:none");
     if (txtBuscar) txtBuscar.style.display = "none";
+  } else {
+    document.body.classList.add("vista-base");
   }
+
 
   $("btnCargar").addEventListener("click", async () => {
     const rut = $("txtRut").value.trim();
