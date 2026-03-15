@@ -1,23 +1,58 @@
-body { 
-  font-family: system-ui, Arial, sans-serif; 
-  margin: 0; 
+body {
+  font-family: system-ui, Arial, sans-serif;
+  margin: 0;
   padding: 0 10px;
   padding-top: 10px !important;
 }
-.topbar { 
-  position: sticky; 
-  top: 0; 
-  background: #ebd882ee; 
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.15);
-  padding: 10px; 
-  z-index: 10; 
+  background: linear-gradient(135deg, #0f4c81 0%, #1d6fa5 100%);
+  color: #fff;
 }
+
 .viewer-title {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: 0;
+  color: #fff;
+}
+
+.topbar .row,
+.topbar label,
+.topbar .viewer-title {
+  color: #fff;
+}
+
+.topbar input,
+.topbar select {
+  background: #fff;
+  color: #222;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.group.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+}
+
+.group.actions button {
+  border-radius: 10px;
+}
+
+#btnExportarJSON,
+#btnImportarJSON {
   font-weight: 600;
-  padding: 10px 14px 6px 14px;
-  color: #000000;
-  letter-spacing: 0.3px;
 }
 .row { 
   display: flex; 
@@ -29,11 +64,6 @@ body {
   display: flex; 
   flex-direction: column; 
   gap: 4px; 
-}
-.actions { 
-  flex-direction: row; 
-  align-items: center; 
-  gap: 8px; 
 }
 .spacer { 
   flex: 1; 
@@ -565,53 +595,6 @@ body.vista-infecciosa #tablaWrap {
     color: #000 !important;
     padding: 2px 6px !important;
   }
-
-  .badge-gas {
-  border: 1px solid #000;
-  background: #fff !important;
-  color: #000 !important;
-}
-
-  .matrix tbody tr:nth-child(even) td,
-  .matrix tbody tr:nth-child(even) th.rowhead {
-    background: #f3f3f3 !important;
-  }
-
-  .matrix th.day-alt,
-  .matrix td.day-alt {
-    background: #f7f7f7 !important;
-  }
-
-  .matrix th.day-start,
-  .matrix td.day-start {
-    border-left: 2px solid #bdbdbd;
-  }
-
-  .matrix th.last-col,
-  .matrix td.last-col {
-    font-weight: 700;
-  }
-
-  thead {
-    display: table-header-group;
-  }
-
-  tfoot {
-    display: table-footer-group;
-  }
-
-  .matrix tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .btn-mini {
-    border: 1px solid #aaa !important;
-    background: #fff !important;
-    color: #000 !important;
-    padding: 2px 6px !important;
-  }
-
   /* Para impresoras monocromáticas, dejamos color-control opcional */
   /* * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } */
 }

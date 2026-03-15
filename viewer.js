@@ -801,6 +801,13 @@ function openClostridiumModal(timestamp) {
   if (!dlg.open) dlg.showModal();
 }
 
+function abrirSelectorImportacionJSON() {
+  const input = $("fileImportarJSON");
+  if (!input) return;
+  input.value = "";
+  input.click();
+}
+
 function parseRutFromUrl() {
   const params = new URLSearchParams(location.search);
   return params.get("rut");
@@ -1590,10 +1597,41 @@ async function init() {
     if (state.rut) await cargarPaciente(state.rut);
   });
 
-  $("btnExportar").addEventListener("click", async () => {
-    if (!state.rut) return;
-    await exportarPacienteCSV(state.rut);
-  });
+$("btnExportarJSON").addEventListener("click", async () => {
+  if (!state.rut) return;
+  await exportarPacienteJSON(state.rut);
+});
+
+$("btnExportarCSV").addEventListener("click", async () => {
+  if (!state.rut) return;
+  await exportarPacienteCSV(state.rut);
+});
+
+$("btnImportarJSON").addEventListener("click", () => {
+  abrirSelectorImportacionJSON();
+});
+
+$("fileImportarJSON").addEventListener("change", async (e) => {
+  const input = e.target;
+
+  try {
+    const res = await importarPacienteJSONConPicker(input);
+    await refrescarListaPacientes();
+
+    $("txtRut").value = res.rut || "";
+    state.rut = res.rut || null;
+
+    await cargarPaciente(res.rut);
+
+    const nombreTxt = res.nombre ? ` (${res.nombre})` : "";
+    setEstado(`Paciente importado: ${res.rut}${nombreTxt}. Órdenes: ${res.totalOrdenes}.`);
+  } catch (err) {
+    console.error("Error importando JSON:", err);
+    setEstado(err?.message || "No se pudo importar el archivo JSON.", true);
+  } finally {
+    if (input) input.value = "";
+  }
+});
 
   $("btnImprimir").addEventListener("click", () => {
     imprimirVistaPaginada();

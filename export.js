@@ -127,9 +127,10 @@ function validarBackupPacienteJSON(payload) {
     throw new Error("Archivo JSON inválido.");
   }
 
-  if (payload.format !== "uci-lab-navegador") {
-    throw new Error("El archivo no corresponde a UCI Lab Navegador.");
-  }
+const formatosValidos = new Set(["uci-lab-navegador", "uci-lab-extractor"]);
+if (!formatosValidos.has(payload.format)) {
+  throw new Error("El archivo no corresponde a UCI Lab Navegador.");
+}
 
   if (payload.version !== 1) {
     throw new Error(`Versión de backup no soportada: ${payload.version}`);
@@ -209,4 +210,37 @@ async function exportarPacienteCSV(rut, opciones = {}) {
 
   const contenidoCSV = generarCSV(matrizCompleta);
   descargarCSV(`UCI_${paciente?.rut ?? rut}.csv`, contenidoCSV);
+}
+
+async function importarPacienteJSONDesdeArchivo(file) {
+  if (!file) throw new Error("No se seleccionó archivo.");
+
+  const texto = await file.text();
+
+  let payload;
+  try {
+    payload = JSON.parse(texto);
+  } catch {
+    throw new Error("El archivo no contiene un JSON válido.");
+  }
+
+  const { rut, data } = validarBackupPacienteJSON(payload);
+
+  await guardar(rut, data);
+  await guardarRutActual(rut);
+
+  return {
+    rut,
+    nombre: data?.paciente?.nombre || "",
+    totalOrdenes: Object.keys(data?.ordenes || {}).length
+  };
+}
+
+async function importarPacienteJSONConPicker(inputEl) {
+  if (!inputEl?.files?.length) {
+    throw new Error("No se seleccionó archivo.");
+  }
+
+  const file = inputEl.files[0];
+  return await importarPacienteJSONDesdeArchivo(file);
 }

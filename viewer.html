@@ -26,13 +26,16 @@
 
       <div class="spacer"></div>
 
-      <div class="group actions">
-        <button id="btnActualizar">Actualizar</button>
-        <button id="btnResumenInfeccioso">Resumen infeccioso</button>
-        <button id="btnExportar">Exportar CSV</button>
-        <button id="btnImprimir">Imprimir</button>
-        <button id="btnBorrar" class="danger">Borrar</button>
-      </div>
+<div class="group actions">
+  <button id="btnActualizar">Actualizar</button>
+  <button id="btnResumenInfeccioso">Resumen infeccioso</button>
+  <button id="btnExportarJSON">Exportar JSON</button>
+  <button id="btnImportarJSON">Importar JSON</button>
+  <button id="btnExportarCSV">Exportar CSV</button>
+  <button id="btnImprimir">Imprimir</button>
+  <button id="btnBorrar" class="danger">Borrar</button>
+  <input id="fileImportarJSON" type="file" accept=".json,application/json" hidden />
+</div>
     </div>
 
     <div class="row info" id="infoPaciente"></div>
