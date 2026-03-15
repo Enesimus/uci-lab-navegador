@@ -1,8 +1,46 @@
 # Changelog
 
-Todos los cambios relevantes de este proyecto serán documentados aquí.
+Spanish version available in [CHANGELOG.es.md](CHANGELOG.es.md).
 
-El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproximado.
+All notable changes to this project will be documented here.
+
+This format follows the *Keep a Changelog* style with approximate semantic versioning.
+
+---
+
+## [1.5.0] - 2026-03-15
+
+### Added
+
+- Direct **JSON export** from the viewer toolbar.
+- Direct **JSON import** from the viewer toolbar.
+- JSON backup validation and patient reconstruction into local storage.
+- Dedicated modal view for **Antinuclear Antibodies (ANA)**.
+- Dedicated modal view for **Rapid Clostridium difficile Test**.
+
+### Improved
+
+- Viewer header and action toolbar layout.
+- Display of long immunology exam names using shorter clinical labels.
+- Infectious summary naming consistency for culture studies.
+- Print layout to better preserve horizontal space for result columns.
+- Wrapping behavior for long labels in infectious summary tables.
+- Urine panel display by renaming urinary ketones as **Cetonuria**.
+
+### Fixed
+
+- Blank print output in **Infectious Summary** view.
+- Correct grouped rendering of **PCR Meningitis Panel** as a molecular panel after re-extraction with the updated schema.
+- Correct grouped rendering of **ANA** studies into a single row with modal detail.
+- Correct grouped rendering of **Rapid Clostridium difficile Test** into a single row with modal detail when any component is positive.
+- Print pagination so the last page no longer stretches columns when it contains only a few result columns.
+- Exam-name column width behavior during print output.
+- Inconsistent rendering of long study names that affected matrix readability.
+
+### Data portability
+
+- **JSON** is now the main portable backup format for patient transfer and reconstruction.
+- **CSV** is kept as a secondary export option for tabular external analysis.
 
 ---
 
@@ -10,10 +48,10 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ### Improved
 
-- Definición de ruta de trabajo
-  - Incorporar Releases desde GitHub para difusión
-- Cambio de nombre de Extractor a Navegador
-- Actualización de Resumen Ejecutivo
+- Defined project workflow path
+  - Added the use of GitHub Releases for distribution
+- Renamed the project from **Extractor** to **Navegador**
+- Updated the Executive Summary
 
 ---
 
@@ -21,34 +59,34 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ### Added
 
-- Nueva **vista "Resumen infeccioso"** para seguimiento clínico de cultivos y paneles moleculares.
-- Botón **"Resumen infeccioso"** en el viewer que abre una visualización especializada.
-- Tabla cronológica optimizada para infecciones con columnas:
-  - Fecha
-  - Examen
-  - Resultado
-  - Detalle
-- Renderizado selectivo de paneles moleculares mostrando **solo resultados positivos**.
-- Paneles sin detecciones ahora se muestran como **NEGATIVO** para mejorar legibilidad clínica.
-- Coloreado clínico de resultados:
-  - `Detectado` → rojo oscuro
-  - `NEGATIVO` → gris tenue
-- Mejora de layout para impresión del resumen infeccioso.
+- New **"Infectious Summary"** view for clinical follow-up of cultures and molecular panels.
+- **"Infectious Summary"** button in the viewer that opens a specialized visualization.
+- Infection-oriented chronological table with columns for:
+  - Date
+  - Exam
+  - Result
+  - Detail
+- Selective rendering of molecular panels showing **only positive results**.
+- Panels without detections are now displayed as **NEGATIVE** to improve clinical readability.
+- Clinical result color coding:
+  - `Detected` → dark red
+  - `NEGATIVE` → light gray
+- Improved print layout for the infectious summary.
 
 ### Improved
 
-- Optimización del ancho de columnas en la vista infecciosa para priorizar el campo **Resultado**.
-- Reutilización de ventana del resumen infeccioso (evita abrir múltiples ventanas).
-- Mejor manejo de modales reutilizando el diálogo principal sin pérdida de toolbar.
-- Separación clara entre:
-  - **Vista longitudinal completa**
-  - **Vista infecciosa resumida**
+- Column width optimization in the infectious view to prioritize the **Result** field.
+- Reuse of the infectious summary window to avoid opening multiple windows.
+- Improved modal handling by reusing the main dialog without losing the toolbar.
+- Clear separation between:
+  - **Full longitudinal view**
+  - **Condensed infectious view**
 
 ### Data portability
 
-- **Exportación completa de paciente a JSON** (backup portable).
-- **Importación de paciente desde JSON**.
-- Formato de respaldo versionado:
+- Full **patient export to JSON** (portable backup).
+- **Patient import from JSON**.
+- Versioned backup format:
 
 ```json
 {
@@ -62,19 +100,19 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ### Added
 
-- Visualización modal de cultivos.
-- Identificación visual de gases arteriales y venosos.
-- Mejoras de impresión multipágina.
+- Modal visualization for cultures.
+- Visual identification of arterial and venous blood gases.
+- Multipage print improvements.
 
 ### Changed
 
-- Reestructuración de directorios del proyecto.
-- Ajustes de cabecera de impresión.
-- Mejoras de scroll y visualización de la columna "Examen".
+- Project directory restructuring.
+- Print header adjustments.
+- Scrolling and Exam column display improvements.
 
 ### Fixed
 
-- Ajustes de visualización en viewer longitudinal.
+- Display adjustments in the longitudinal viewer.
 
 ---
 
@@ -82,46 +120,46 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ### Added
 
-- Visualizador clínico longitudinal (`viewer.html`).
-- Matriz de exámenes con columnas por orden y fecha.
-- Visualización integrada de gases arteriales y venosos en una sola fila (A/V).
-- Paneles modales para exámenes especiales:
-  - Orina completa
-  - Cultivos con antibiograma
-  - Estudios moleculares
-- Encabezado clínico con datos del paciente, número de órdenes y rango temporal.
-- Sistema de filtros:
-  - búsqueda por examen
-  - ocultar filas vacías
-  - mostrar/ocultar exámenes extra.
+- Longitudinal clinical viewer (viewer.html).
+- Exam matrix with columns by order and date.
+- Integrated display of arterial and venous blood gases in a single row (A/V).
+- Modal panels for special exams:
+  - Complete urinalysis
+  - Cultures with antibiogram
+  - Molecular studies
+- Clinical header with patient data, number of orders, and time range.
+- Filter system:
+  - exam search
+  - hide empty rows
+  - show/hide extra exams.
 
 ### Improved
 
-- Renderizado optimizado de la matriz clínica.
-- Agrupación de gases arteriales y venosos para lectura rápida.
-- Zebra vertical por día para facilitar análisis longitudinal.
-- Resaltado dinámico de columna al pasar el cursor.
-- Manejo robusto de valores vacíos y datos parciales.
+- Optimized clinical matrix rendering.
+- Grouping of arterial and venous blood gases for faster reading.
+- Vertical zebra striping by day to support longitudinal analysis.
+- Dynamic column highlighting on hover.
+- Robust handling of empty values and partial data.
 
 ### Printing
 
-- Sistema de impresión paginada.
-- División automática de columnas para múltiples páginas.
-- Encabezado clínico en cada página con:
-  - paciente
-  - RUT
-  - rango de fechas
-  - número de página.
-- Compatibilidad con impresoras monocromáticas hospitalarias.
+- Paginated print system.
+- Automatic column splitting across multiple pages.
+- Clinical header on each page including:
+  - patient
+  - national ID (RUT)
+  - date range
+  - page number.
+- Compatibility with monochrome hospital printers.
 
 ### Internal
 
-- Separación clara entre:
-  - lógica de extracción (`content.js`)
-  - almacenamiento (`storage.js`)
-  - construcción de matriz (`matrix.js`)
-  - interfaz clínica (`viewer.js`)
-- Mejor manejo de estado en el viewer.
+- Clear separation between:
+  - extraction logic (content.js)
+  - storage (storage.js)
+  - matrix construction (matrix.js)
+  - clinical interface (viewer.js)
+- Improved state handling in the viewer.
 
 ---
 
@@ -129,7 +167,7 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ### Added
 
-- Exportación de datos a CSV para análisis externo.
+- CSV data export for external analysis.
 
 ---
 
@@ -137,6 +175,6 @@ El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproxim
 
 ### Initial release
 
-- Extracción de exámenes desde sistema LIS.
-- Almacenamiento local por paciente.
-- Exportación básica.
+- Exam extraction from the LIS system.
+- Local per-patient storage.
+- Basic export.

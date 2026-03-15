@@ -72,7 +72,7 @@ Chrome Extension (Manifest V3)
 
 ```chrome.storage.local```
 
-Persistence perr patient: (UCI_\<rut>)
+Persistence per patient: (UCI_\<rut>)
 
 ### 3.3 Data Model
 
@@ -92,7 +92,7 @@ Persistence perr patient: (UCI_\<rut>)
 
 ```
 
-## 3.4 Flujo general de procesamiento y visualización
+## 3.4 General Processing and Visualization Flow
 
 ```mermaid
 flowchart TD
@@ -186,7 +186,7 @@ Clinical direction, conceptual design, and functional decisions belong to the pr
 
 ## 9. Current Status
 
-Versión: 1.4
+Version: 1.5.0
 
 Stable version including:
 
@@ -194,7 +194,10 @@ Stable version including:
 - culture and special study support
 - infectious summary
 - CSV export
-- JSON export/import for data portability and backup
+- JSON export/import for backup and data portability
+- improved print behavior for paginated output
+- grouped visualization for special studies such as ANA and Rapid Clostridium difficile Test
+- updated viewer toolbar with direct JSON export/import actions
 
 ---
 

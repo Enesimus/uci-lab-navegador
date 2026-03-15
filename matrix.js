@@ -79,9 +79,18 @@ const positivo =
 
 // ===== CLOSTRIDIUM =====
 
-function esEstudioClostridium(estudioUpper) {
-  const s = String(estudioUpper || "").trim().toUpperCase();
-  return s === "TEST RAPIDO DE CLOSTRIDIUM DIFFICILE";
+function esEstudioClostridium(estudioRaw) {
+  const s = String(estudioRaw || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+
+  return (
+    s.includes("CLOSTRIDIUM DIFFICILE") ||
+    (s.includes("CLOSTRIDIUM") && s.includes("DIFFICILE"))
+  );
 }
 
 function construirMarkerClostridium() {
@@ -548,8 +557,8 @@ function nombreDiferencialManual(pruebaRaw) {
           pruebaVista = "Cetonuria";
         }
 
-        if (!target[pruebaUp]) target[pruebaUp] = [];
-        target[pruebaUp].push(valor);
+        if (!target[pruebaVista]) target[pruebaVista] = [];
+        target[pruebaVista].push(valor);
 
         if (!filas[ORINA_ESTUDIO]) filas[ORINA_ESTUDIO] = {};
         filas[ORINA_ESTUDIO][timestamp] = "__ORINA_MODAL__";
@@ -735,40 +744,47 @@ function nombreDiferencialManual(pruebaRaw) {
 
       // ===== Clostridium =====
 
-      if (esEstudioClostridium(estudioUp)) {
-  const panel = getClostridiumPanel(timestamp);
+      if (esEstudioClostridium(estudioRaw)) {
+        const panel = getClostridiumPanel(timestamp);
 
-  const valorNorm = normalizarResultadoClostridium(valor);
+        const valorNorm = normalizarResultadoClostridium(valor);
 
-  if (pruebaUp.includes("TOXINA A")) {
-    panel.toxinaA = valorNorm;
-  } else if (pruebaUp.includes("TOXINA B")) {
-    panel.toxinaB = valorNorm;
-  } else if (
-    pruebaUp.includes("GLUTAMATO DESHIDROGENASA") ||
-    pruebaUp.includes("(GDH)") ||
-    pruebaUp.includes("GDH")
-  ) {
-    panel.gdh = valorNorm;
-  }
+        const pruebaNorm = String(pruebaRaw || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toUpperCase();
 
-  const nombreFila = "Test rápido C. difficile";
-  if (!filas[nombreFila]) filas[nombreFila] = {};
+        if (pruebaNorm.includes("TOXINA A")) {
+          panel.toxinaA = valorNorm;
+        } else if (pruebaNorm.includes("TOXINA B")) {
+          panel.toxinaB = valorNorm;
+        } else if (
+          pruebaNorm.includes("GLUTAMATO DESHIDROGENASA") ||
+          pruebaNorm.includes("GDH")
+        ) {
+          panel.gdh = valorNorm;
+        }
 
-  const vals = [panel.toxinaA, panel.toxinaB, panel.gdh].filter(v => v !== null && v !== undefined && String(v).trim() !== "");
-  const todosNegativos = vals.length === 3 && vals.every(esNegativoClostridium);
-  const algunoPositivo = vals.some(esPositivoClostridium);
+      const nombreFila = "Test rápido C. difficile";
+      if (!filas[nombreFila]) filas[nombreFila] = {};
+      examenesExtra.add(nombreFila);
 
-  if (algunoPositivo) {
-    filas[nombreFila][timestamp] = "__CDIFF_MODAL__::positivo";
-  } else if (todosNegativos) {
-    filas[nombreFila][timestamp] = "__CDIFF_MODAL__::negativo";
-  } else {
-    filas[nombreFila][timestamp] = "__CDIFF_MODAL__::indeterminado";
-  }
+      const vals = [panel.toxinaA, panel.toxinaB, panel.gdh].filter(v => v !== null && v !== undefined && String(v).trim() !== "");
+      const todosNegativos = vals.length === 3 && vals.every(esNegativoClostridium);
+      const algunoPositivo = vals.some(esPositivoClostridium);
 
-  return;
-}
+      if (algunoPositivo) {
+        filas[nombreFila][timestamp] = "__CDIFF_MODAL__::positivo";
+      } else if (todosNegativos) {
+        filas[nombreFila][timestamp] = "__CDIFF_MODAL__::negativo";
+      } else {
+        filas[nombreFila][timestamp] = "__CDIFF_MODAL__::indeterminado";
+      }
+
+      return;
+    }
 
       // ===== FLUJO NORMAL (matriz clásica) =====
 
