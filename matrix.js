@@ -77,6 +77,35 @@ const positivo =
   };
 }
 
+// ===== CLOSTRIDIUM =====
+
+function esEstudioClostridium(estudioUpper) {
+  const s = String(estudioUpper || "").trim().toUpperCase();
+  return s === "TEST RAPIDO DE CLOSTRIDIUM DIFFICILE";
+}
+
+function construirMarkerClostridium() {
+  return "__CDIFF_MODAL__";
+}
+
+function normalizarResultadoClostridium(valor) {
+  const raw = String(valor || "").trim();
+  const t = raw.toUpperCase();
+
+  if (t === "POSITIVO") return "Positivo";
+  if (t === "NEGATIVO") return "Negativo";
+
+  return raw;
+}
+
+function esPositivoClostridium(valor) {
+  return String(valor || "").trim().toUpperCase() === "POSITIVO";
+}
+
+function esNegativoClostridium(valor) {
+  return String(valor || "").trim().toUpperCase() === "NEGATIVO";
+}
+
 // ===== CULTIVOS (panel) =====
 function esEstudioCultivo(estudioUpper) {
   const s = String(estudioUpper || "");
@@ -281,6 +310,7 @@ async function construirMatrizClinica(rut) {
     orina: {},
     citoquimicos: {},
     ana: {},
+    clostridium: {},
     cultivos: {},
     moleculares: {},
     hemogramas: {}
@@ -414,6 +444,18 @@ function getAnaPanel(timestamp) {
   return paneles.ana[timestamp];
 }
 
+function getClostridiumPanel(timestamp) {
+  if (!paneles.clostridium[timestamp]) {
+    paneles.clostridium[timestamp] = {
+      toxinaA: null,
+      toxinaB: null,
+      gdh: null,
+      meta: { fechaValidacion: timestamp }
+    };
+  }
+  return paneles.clostridium[timestamp];
+}
+
 function limpiarTextoMorfologia(raw) {
   return String(raw || "")
     .replace(/\u00A0/g, " ")
@@ -500,6 +542,11 @@ function nombreDiferencialManual(pruebaRaw) {
         const target = esMicro
           ? paneles.orina[timestamp].micro
           : paneles.orina[timestamp].fisico;
+        // Alias de visualización dentro del panel de orina
+        let pruebaVista = pruebaUp;
+        if (pruebaUp === "CUERPOS CETONICOS" || pruebaUp === "CUERPOS CETONICOS EN ORINA") {
+          pruebaVista = "Cetonuria";
+        }
 
         if (!target[pruebaUp]) target[pruebaUp] = [];
         target[pruebaUp].push(valor);
@@ -686,6 +733,43 @@ function nombreDiferencialManual(pruebaRaw) {
         return;
       }
 
+      // ===== Clostridium =====
+
+      if (esEstudioClostridium(estudioUp)) {
+  const panel = getClostridiumPanel(timestamp);
+
+  const valorNorm = normalizarResultadoClostridium(valor);
+
+  if (pruebaUp.includes("TOXINA A")) {
+    panel.toxinaA = valorNorm;
+  } else if (pruebaUp.includes("TOXINA B")) {
+    panel.toxinaB = valorNorm;
+  } else if (
+    pruebaUp.includes("GLUTAMATO DESHIDROGENASA") ||
+    pruebaUp.includes("(GDH)") ||
+    pruebaUp.includes("GDH")
+  ) {
+    panel.gdh = valorNorm;
+  }
+
+  const nombreFila = "Test rápido C. difficile";
+  if (!filas[nombreFila]) filas[nombreFila] = {};
+
+  const vals = [panel.toxinaA, panel.toxinaB, panel.gdh].filter(v => v !== null && v !== undefined && String(v).trim() !== "");
+  const todosNegativos = vals.length === 3 && vals.every(esNegativoClostridium);
+  const algunoPositivo = vals.some(esPositivoClostridium);
+
+  if (algunoPositivo) {
+    filas[nombreFila][timestamp] = "__CDIFF_MODAL__::positivo";
+  } else if (todosNegativos) {
+    filas[nombreFila][timestamp] = "__CDIFF_MODAL__::negativo";
+  } else {
+    filas[nombreFila][timestamp] = "__CDIFF_MODAL__::indeterminado";
+  }
+
+  return;
+}
+
       // ===== FLUJO NORMAL (matriz clásica) =====
 
       // Mapeo de nombres alternativos
@@ -795,14 +879,46 @@ return {
 function construirResumenInfecciosoDesdeData(matriz, data) {
   const items = [];
 
+    function normalizarNombreInfeccioso(examenRaw) {
+    const up = String(examenRaw || "").toUpperCase().replace(/\s+/g, " ").trim();
+
+    if (!up) return "";
+
+    if (up.includes("HEMOCULT")) return "Hemocultivo";
+    if (up.includes("UROCULT")) return "Urocultivo";
+
+    if (
+      up.includes("ASPIRADO TRAQUEAL") ||
+      up.includes("SECRECION TRAQUEAL") ||
+      (up.includes("CULTIVO DE SECRECION") && up.includes("TRAQUE"))
+    ) {
+      return "Cultivo secreción traqueal";
+    }
+
+    if (up.includes("LCR") || up.includes("CEFALORRAQUIDEO")) {
+      return "Cultivo LCR";
+    }
+
+    if (up.includes("PLEURAL")) return "Cultivo líquido pleural";
+    if (up.includes("PERITONEAL")) return "Cultivo líquido peritoneal";
+    if (up.includes("PUNTA DE CATETER") || up.includes("CATETER")) {
+      return "Cultivo punta de catéter";
+    }
+
+    if (up.includes("LIQUIDO")) return "Cultivo de líquido";
+
+    return String(examenRaw || "").trim();
+  }
+
   // 1) Cultivos: reutilizar paneles ya construidos por la vista base
   Object.entries(matriz?.paneles?.cultivos || {}).forEach(([timestamp, bucket]) => {
     Object.entries(bucket || {}).forEach(([estudioKey, panel]) => {
+      const examenCultivo = panel?.displayName || panel?.estudioBase || panel?.estudio || estudioKey;
       items.push({
         timestamp,
         fecha: timestamp,
         tipo: "cultivo",
-        examen: panel?.displayName || panel?.estudioBase || panel?.estudio || estudioKey,
+        examen: normalizarNombreInfeccioso(examenCultivo),
         resumen: resumirCultivo(panel),
         estudioKey
       });

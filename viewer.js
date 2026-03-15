@@ -40,7 +40,7 @@ const ORINA_SIEMPRE = new Set([
   "ERITROCITOS",
   "PROTEINAS",
   "GLUCOSA",
-  "CUERPOS CETONICOS",
+  "CETONURIA",
   "BILIRRUBINA"
 ]);
 
@@ -231,6 +231,10 @@ function getDialog() {
       if (state._lastModal.tipo === "ANA") {
         openAnaModal(state._lastModal.timestamp);
       }
+      if (state._lastModal.tipo === "CDIFF") {
+        openClostridiumModal(state._lastModal.timestamp);
+      }
+
     }
     });
 
@@ -734,6 +738,69 @@ function openAnaModal(timestamp) {
   if (!dlg.open) dlg.showModal();
 }
 
+function buildClostridiumHtml(panel) {
+  const esc = escapeTxt;
+
+  const fmt = (v) => {
+    const txt = String(v || "").trim();
+    if (!txt) return "—";
+    if (txt.toUpperCase() === "POSITIVO") return `<span class="ana-pos"><b>Positivo</b></span>`;
+    if (txt.toUpperCase() === "NEGATIVO") return `<span class="ana-neg">Negativo</span>`;
+    return esc(txt);
+  };
+
+  return `
+    <div class="sec">
+      <table class="mol-table">
+        <tbody>
+          <tr>
+            <td class="mol-k">Toxina A</td>
+            <td class="mol-v">${fmt(panel?.toxinaA)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Toxina B</td>
+            <td class="mol-v">${fmt(panel?.toxinaB)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Glutamato deshidrogenasa (GDH)</td>
+            <td class="mol-v">${fmt(panel?.gdh)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openClostridiumModal(timestamp) {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.clostridium?.[timestamp];
+  if (!panel) {
+    setEstado("No hay panel de Clostridium difficile para esta fecha.", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "CDIFF", timestamp };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+  const toolbar = chk.closest(".dlg-toolbar");
+
+  titulo.textContent = "Test rápido C. difficile";
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp)
+    ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}`
+    : "";
+
+  chk.checked = false;
+  if (toolbar) toolbar.style.display = "none";
+
+  body.innerHTML = buildClostridiumHtml(panel);
+
+  if (!dlg.open) dlg.showModal();
+}
+
 function parseRutFromUrl() {
   const params = new URLSearchParams(location.search);
   return params.get("rut");
@@ -1023,6 +1090,20 @@ function construirTablaHTML(matriz) {
               </td>`;
           }
 
+          if (txt.startsWith("__CDIFF_MODAL__::")) {
+            const estado = txt.slice("__CDIFF_MODAL__::".length);
+
+            let etiqueta = "Ver";
+            if (estado === "positivo") etiqueta = "Positivo";
+            else if (estado === "negativo") etiqueta = "Negativo";
+            else if (estado === "indeterminado") etiqueta = "Ver";
+
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="cdiff" data-ts="${escapeHtml(c.timestamp)}">${escapeHtml(etiqueta)}</button>
+              </td>`;
+            }
+
           if (typeof v === "object" && v !== null) {
             const a = String(v.arterial ?? "").trim();
             const ve = String(v.venoso ?? "").trim();
@@ -1149,7 +1230,12 @@ function decorarTablaRenderizada(wrap, matriz, interactive = true) {
     if (action === "ana") {
       openAnaModal(ts);
       return;
-    }    
+    }
+    
+    if (action === "cdiff") {
+      openClostridiumModal(ts);
+      return;
+    }
   });
 }
 

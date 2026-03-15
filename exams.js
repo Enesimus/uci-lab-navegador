@@ -75,6 +75,7 @@ const MAP_EXAMENES = {
     "PLAQUETAS": "Plaquetas",
     "PROTEINA C REACTIVA": "PCR",
     "PROCALCITONINA": "PCT",
+    "HORMONA TIROESTIMULANTE (TSH)":"TSH",
     "TRIYODOTIRONINA (T3)": "T3",
     "T4 TOTAL": "T4 total",
     "T4 LIBRE": "T4 libre",
@@ -84,7 +85,12 @@ const MAP_EXAMENES = {
     "ANTICUERPOS ANTI PEROXIDASA": "Ac Anti-Peroxidasa",
     "ANTICUERPOS ANTI TIROGLOBULINAS (TIROIDEOS)": "Ac Anti-Tiroglobulinas",
     "ENA SCREENING": "Ac ENA",
-    "CUERPOS CETONICOS EN ORINA": "Cetonuria"
+    "CUERPOS CETONICOS EN ORINA": "Cetonuria",
+    "CUANTIFICACION FACTOR REUMATOIDEO":"Factor Reumatoideo",
+    "VITAMINA B12": "Vit B12",
+    "GAMMA-GLUTAMIL-TRANSFERASA (GGT)": "GGT",
+    "TEST RAPIDO DE CLOSTRIDIUM DIFFICILE": "C. difficile",
+"GLUTAMATO DESHIDROGENASA (GDH)": "GDH"
 };
 
 function normalizarNombreExamen(nombre) {

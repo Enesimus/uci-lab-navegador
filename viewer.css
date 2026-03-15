@@ -270,6 +270,29 @@ td.empty {
   display: none;
 }
 
+.micro-table th:nth-child(2),
+.micro-table td:nth-child(2) {
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.micro-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.micro-table th:nth-child(1),
+.micro-table td:nth-child(1) {
+  width: 150px;
+}
+
+.micro-table th:nth-child(2),
+.micro-table td:nth-child(2) {
+  width: 280px;
+}
+
 @media print {
 
   @page {
@@ -304,6 +327,57 @@ body.vista-infecciosa #tablaWrap {
   padding: 0 !important;
   border-top: 0 !important;
 }
+
+/* En impresión, el contenedor no debe “cortar” */
+.table-wrap { max-height: none !important; overflow: visible !important; }
+
+ /* Tabla más compacta para impresión */
+  .matrix {
+    width: 100% !important;
+    table-layout: fixed !important;
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+  }
+
+  .matrix th,
+  .matrix td {
+    padding: 3px 4px !important;
+  }
+
+  /* Columna de examen más angosta y con salto de línea */
+  .matrix th.corner,
+  .matrix th.rowhead {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+    /* Encabezados de columnas también más compactos */
+  .matrix thead th:not(.corner) {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+  }
+
+  /* Celdas de resultado: mantener una sola línea cuando se pueda */
+  .matrix tbody td {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Botones o marcadores especiales dentro de la tabla */
+  .matrix .btn-mini {
+    font-size: 10px !important;
+    padding: 1px 5px !important;
+  }
 
   /* Encabezado general del documento */
   .print-header {
@@ -410,11 +484,59 @@ body.vista-infecciosa #tablaWrap {
   }
 
   .print-table-wrap {
-    max-height: none !important;
+    display: inline-block !important;
+    width: auto !important;
     max-width: none !important;
+    max-height: none !important;
     overflow: visible !important;
     padding: 0 !important;
     border-top: 0 !important;
+    vertical-align: top;
+  }
+
+  .print-page {
+    text-align: left;
+  }
+
+  .print-page .matrix {
+    display: inline-table !important;
+    width: auto !important;
+    table-layout: fixed !important;
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+  }
+
+  .print-page .matrix th.corner,
+  .print-page .matrix tbody th.rowhead {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .print-page .matrix thead th:not(.corner),
+  .print-page .matrix tbody td {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+  }
+
+    .print-page .matrix thead th:not(.corner) {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+  }
+
+  .print-page .matrix tbody td {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .matrix {
