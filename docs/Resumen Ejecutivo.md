@@ -61,6 +61,7 @@ La herramienta actualmente permite:
 - almacenamiento local por paciente
 - visualización longitudinal de resultados
 - visualización estructurada de estudios especiales
+- resumen infeccioso para seguimiento microbiológico y molecular
 - exportación de datos a CSV para análisis
 - exportación e importación en JSON para respaldo y portabilidad
 - impresión de resúmenes para reuniones clínicas
@@ -99,6 +100,6 @@ El modelo permite evolucionar hacia:
 
 ### 7. Estado actual
 
-Versión actual: 1.4.1
+Versión actual: 1.5.0
 
-El proyecto se encuentra en etapa funcional inicial y se presenta para evaluación de su potencial utilidad clínica y posibles líneas de desarrollo institucional.
+El proyecto se encuentra en una etapa funcional estable inicial y se presenta para evaluación de su utilidad clínica, escalabilidad y posibles líneas de desarrollo institucional.

@@ -40,7 +40,7 @@ const ORINA_SIEMPRE = new Set([
   "ERITROCITOS",
   "PROTEINAS",
   "GLUCOSA",
-  "CUERPOS CETONICOS",
+  "CETONURIA",
   "BILIRRUBINA"
 ]);
 
@@ -198,6 +198,8 @@ function getDialog() {
     #dlgEspecial .mol-k{width:72%;font-size:13px; padding-right:12px;}
     #dlgEspecial .mol-v{width:28%;font-size:13px;text-align:left;white-space:nowrap;}
     #dlgEspecial .mol-v.detected{color:#b00020; font-weight:600;}
+    #dlgEspecial .ana-pos{color:#8b0000}
+    #dlgEspecial .ana-neg{color:#666}
     @media (max-width:720px){#dlgEspecial .grid{grid-template-columns:1fr} #dlgEspecial .k{min-width:0}}
   `;
 
@@ -226,6 +228,13 @@ function getDialog() {
       if (state._lastModal.tipo === "CITOQUIMICO") {
         openCitoquimicoModal(state._lastModal.timestamp, state._lastModal.estudioKey);
       }
+      if (state._lastModal.tipo === "ANA") {
+        openAnaModal(state._lastModal.timestamp);
+      }
+      if (state._lastModal.tipo === "CDIFF") {
+        openClostridiumModal(state._lastModal.timestamp);
+      }
+
     }
     });
 
@@ -627,6 +636,178 @@ function openMolecularModal(timestamp, estudioKey) {
   if (!dlg.open) dlg.showModal();
 }
 
+function buildAnaHtml(panel) {
+  const esc = escapeTxt;
+
+  const nuclear = panel?.nuclear || {};
+  const cito = panel?.citoplasmatico || {};
+  const obs = String(panel?.observacion || "").trim();
+
+  const fmtEstado = (positivo) => {
+    if (positivo === true) return `<span class="ana-pos"><b>Positivo</b></span>`;
+    if (positivo === false) return `<span class="ana-neg">Negativo</span>`;
+    return "—";
+  };
+
+  const fmtValor = (v) => {
+    const txt = String(v || "").trim();
+    return txt ? esc(txt) : "—";
+  };
+
+  return `
+    <div class="sec">
+      <h4>Patrón nuclear</h4>
+      <table class="mol-table">
+        <tbody>
+          <tr>
+            <td class="mol-k">Resultado</td>
+            <td class="mol-v">${fmtEstado(nuclear.positivo)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Patrón</td>
+            <td class="mol-v">${fmtValor(nuclear.patron)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Título</td>
+            <td class="mol-v">${fmtValor(nuclear.titulo)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec">
+      <h4>Patrón citoplasmático</h4>
+      <table class="mol-table">
+        <tbody>
+          <tr>
+            <td class="mol-k">Resultado</td>
+            <td class="mol-v">${fmtEstado(cito.positivo)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Patrón</td>
+            <td class="mol-v">${fmtValor(cito.patron)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Título</td>
+            <td class="mol-v">${fmtValor(cito.titulo)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    ${
+      obs && obs !== "."
+        ? `
+          <div class="sec">
+            <h4>Observación</h4>
+            <div class="v">${esc(obs)}</div>
+          </div>
+        `
+        : ""
+    }
+  `;
+}
+
+function openAnaModal(timestamp) {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.ana?.[timestamp];
+  if (!panel) {
+    setEstado("No hay panel ANA para esta fecha.", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "ANA", timestamp };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+  const toolbar = chk.closest(".dlg-toolbar");
+
+  titulo.textContent = "Ac ANA";
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp)
+    ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}`
+    : "";
+
+  chk.checked = false;
+  if (toolbar) toolbar.style.display = "none";
+
+  body.innerHTML = buildAnaHtml(panel);
+
+  if (!dlg.open) dlg.showModal();
+}
+
+function buildClostridiumHtml(panel) {
+  const esc = escapeTxt;
+
+  const fmt = (v) => {
+    const txt = String(v || "").trim();
+    if (!txt) return "—";
+    if (txt.toUpperCase() === "POSITIVO") return `<span class="ana-pos"><b>Positivo</b></span>`;
+    if (txt.toUpperCase() === "NEGATIVO") return `<span class="ana-neg">Negativo</span>`;
+    return esc(txt);
+  };
+
+  return `
+    <div class="sec">
+      <table class="mol-table">
+        <tbody>
+          <tr>
+            <td class="mol-k">Toxina A</td>
+            <td class="mol-v">${fmt(panel?.toxinaA)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Toxina B</td>
+            <td class="mol-v">${fmt(panel?.toxinaB)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Glutamato deshidrogenasa (GDH)</td>
+            <td class="mol-v">${fmt(panel?.gdh)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openClostridiumModal(timestamp) {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.clostridium?.[timestamp];
+  if (!panel) {
+    setEstado("No hay panel de Clostridium difficile para esta fecha.", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "CDIFF", timestamp };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+  const toolbar = chk.closest(".dlg-toolbar");
+
+  titulo.textContent = "Test rápido C. difficile";
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp)
+    ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}`
+    : "";
+
+  chk.checked = false;
+  if (toolbar) toolbar.style.display = "none";
+
+  body.innerHTML = buildClostridiumHtml(panel);
+
+  if (!dlg.open) dlg.showModal();
+}
+
+function abrirSelectorImportacionJSON() {
+  const input = $("fileImportarJSON");
+  if (!input) return;
+  input.value = "";
+  input.click();
+}
+
 function parseRutFromUrl() {
   const params = new URLSearchParams(location.search);
   return params.get("rut");
@@ -778,8 +959,8 @@ function construirPrintHeaderHTML(data, matriz, pageNum = null, totalPages = nul
       <div class="ph-left">
                 <div class="ph-title">${
           state.vista === "infecciosa"
-            ? "UCI Lab Extractor – Resumen Infeccioso"
-            : "UCI Lab Extractor – Resumen Longitudinal"
+            ? "UCI Lab Navegador – Resumen Infeccioso"
+            : "UCI Lab Navegador – Resumen Longitudinal"
         }</div>
         <div class="ph-sub">
           <b>${escapeHtml(nombre)}</b> · RUT: <b>${escapeHtml(rut)}</b> · Órdenes: <b>${nOrdenes}</b>
@@ -906,6 +1087,30 @@ function construirTablaHTML(matriz) {
               </td>`;
           }
           
+          if (txt.startsWith("__ANA_MODAL__::")) {
+            const estadoAna = txt.slice("__ANA_MODAL__::".length);
+            const etiqueta = estadoAna === "positivo" ? "Positivo" : "Negativo";
+
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="ana" data-ts="${escapeHtml(c.timestamp)}">${escapeHtml(etiqueta)}</button>
+              </td>`;
+          }
+
+          if (txt.startsWith("__CDIFF_MODAL__::")) {
+            const estado = txt.slice("__CDIFF_MODAL__::".length);
+
+            let etiqueta = "Ver";
+            if (estado === "positivo") etiqueta = "Positivo";
+            else if (estado === "negativo") etiqueta = "Negativo";
+            else if (estado === "indeterminado") etiqueta = "Ver";
+
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="cdiff" data-ts="${escapeHtml(c.timestamp)}">${escapeHtml(etiqueta)}</button>
+              </td>`;
+            }
+
           if (typeof v === "object" && v !== null) {
             const a = String(v.arterial ?? "").trim();
             const ve = String(v.venoso ?? "").trim();
@@ -1026,6 +1231,16 @@ function decorarTablaRenderizada(wrap, matriz, interactive = true) {
     if (action === "hemograma") {
       const est = btn.getAttribute("data-est") || "";
       openHemogramaModal(ts, est);
+      return;
+    }
+
+    if (action === "ana") {
+      openAnaModal(ts);
+      return;
+    }
+    
+    if (action === "cdiff") {
+      openClostridiumModal(ts);
       return;
     }
   });
@@ -1350,10 +1565,11 @@ async function init() {
 
   if (state.vista === "infecciosa") {
     document.title = "UCI Lab Viewer – Resumen infeccioso";
+    document.body.classList.add("vista-infecciosa");
 
     const filtros = document.querySelector(".filters");
     if (filtros) filtros.style.display = "none";
-
+    
     const chkOcultar = $("chkOcultarVacios");
     const chkExtras = $("chkMostrarExtras");
     const txtBuscar = $("txtBuscarExamen");
@@ -1361,7 +1577,10 @@ async function init() {
     if (chkOcultar) chkOcultar.closest("label")?.setAttribute("style", "display:none");
     if (chkExtras) chkExtras.closest("label")?.setAttribute("style", "display:none");
     if (txtBuscar) txtBuscar.style.display = "none";
+  } else {
+    document.body.classList.add("vista-base");
   }
+
 
   $("btnCargar").addEventListener("click", async () => {
     const rut = $("txtRut").value.trim();
@@ -1378,10 +1597,41 @@ async function init() {
     if (state.rut) await cargarPaciente(state.rut);
   });
 
-  $("btnExportar").addEventListener("click", async () => {
-    if (!state.rut) return;
-    await exportarPacienteCSV(state.rut);
-  });
+$("btnExportarJSON").addEventListener("click", async () => {
+  if (!state.rut) return;
+  await exportarPacienteJSON(state.rut);
+});
+
+$("btnExportarCSV").addEventListener("click", async () => {
+  if (!state.rut) return;
+  await exportarPacienteCSV(state.rut);
+});
+
+$("btnImportarJSON").addEventListener("click", () => {
+  abrirSelectorImportacionJSON();
+});
+
+$("fileImportarJSON").addEventListener("change", async (e) => {
+  const input = e.target;
+
+  try {
+    const res = await importarPacienteJSONConPicker(input);
+    await refrescarListaPacientes();
+
+    $("txtRut").value = res.rut || "";
+    state.rut = res.rut || null;
+
+    await cargarPaciente(res.rut);
+
+    const nombreTxt = res.nombre ? ` (${res.nombre})` : "";
+    setEstado(`Paciente importado: ${res.rut}${nombreTxt}. Órdenes: ${res.totalOrdenes}.`);
+  } catch (err) {
+    console.error("Error importando JSON:", err);
+    setEstado(err?.message || "No se pudo importar el archivo JSON.", true);
+  } finally {
+    if (input) input.value = "";
+  }
+});
 
   $("btnImprimir").addEventListener("click", () => {
     imprimirVistaPaginada();

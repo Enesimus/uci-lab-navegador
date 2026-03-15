@@ -9,7 +9,10 @@ Licensed under the GNU General Public License v3.0
 
 // Helpers
 function normTxt(s) {
-  return String(s || "").trim().toUpperCase();
+  return String(s || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 }
 
 function esNoSeObserva(v) {
@@ -34,6 +37,83 @@ const CITO_LCR_CELULAR = new Set([
   "POLINUCLEARES",
   "MONONUCLEARES"
 ]);
+
+// ===== ANA =====
+
+function esEstudioANA(estudioUpper) {
+  return estudioUpper.includes("ANTINUCLEO") || estudioUpper.includes("(ANA)");
+}
+
+function construirMarkerANA() {
+  return "__ANA_MODAL__";
+}
+
+function limpiarTextoANA(valor) {
+  return String(valor || "")
+    .replace(/¬+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseResultadoANA(valorRaw) {
+  const txt = limpiarTextoANA(valorRaw);
+  if (!txt) return { raw: "", positivo: null, patron: null, titulo: null };
+
+  const txtUp = txt.toUpperCase();
+
+const positivo =
+    txtUp.includes("POSITIVO") ? true :
+    txtUp.includes("NEGATIVO") ? false :
+    null;
+
+  const mPatron = txt.match(/PATRON\s*:?\s*([^:]+?)(?=\s+TITULO\s*:|$)/i);
+  const mTitulo = txt.match(/TITULO\s*:?\s*([^\s]+.*)$/i);
+
+  return {
+    raw: txt,
+    positivo,
+    patron: mPatron ? mPatron[1].trim() : null,
+    titulo: mTitulo ? mTitulo[1].trim() : null
+  };
+}
+
+// ===== CLOSTRIDIUM =====
+
+function esEstudioClostridium(estudioRaw) {
+  const s = String(estudioRaw || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+
+  return (
+    s.includes("CLOSTRIDIUM DIFFICILE") ||
+    (s.includes("CLOSTRIDIUM") && s.includes("DIFFICILE"))
+  );
+}
+
+function construirMarkerClostridium() {
+  return "__CDIFF_MODAL__";
+}
+
+function normalizarResultadoClostridium(valor) {
+  const raw = String(valor || "").trim();
+  const t = raw.toUpperCase();
+
+  if (t === "POSITIVO") return "Positivo";
+  if (t === "NEGATIVO") return "Negativo";
+
+  return raw;
+}
+
+function esPositivoClostridium(valor) {
+  return String(valor || "").trim().toUpperCase() === "POSITIVO";
+}
+
+function esNegativoClostridium(valor) {
+  return String(valor || "").trim().toUpperCase() === "NEGATIVO";
+}
 
 // ===== CULTIVOS (panel) =====
 function esEstudioCultivo(estudioUpper) {
@@ -78,7 +158,15 @@ const ESTUDIOS_MOLECULARES = new Set([
 const ESTUDIO_PCR_SARS = "PCR SARS COV-2";
 
 function esEstudioMolecular(estudioUpper) {
-  return ESTUDIOS_MOLECULARES.has(String(estudioUpper || "").trim().toUpperCase());
+  const s = normTxt(estudioUpper);
+  if (ESTUDIOS_MOLECULARES.has(s)) return true;
+
+  return (
+    s.includes("PANEL RESPIRATORIO") ||
+    s.includes("PANEL PCR GASTROINTESTINAL") ||
+    s.includes("PANEL PCR MENINGITIS") ||
+    s.includes("PANEL PCR NEUMONIA")
+  );
 }
 
 function construirMarkerMolecular(estudioKey) {
@@ -230,6 +318,8 @@ async function construirMatrizClinica(rut) {
   const paneles = {
     orina: {},
     citoquimicos: {},
+    ana: {},
+    clostridium: {},
     cultivos: {},
     moleculares: {},
     hemogramas: {}
@@ -351,6 +441,30 @@ function getHemogramaPanel(timestamp, estudioKey = "FORMULA MANUAL") {
   return paneles.hemogramas[timestamp][estudioKey];
 }
 
+function getAnaPanel(timestamp) {
+  if (!paneles.ana[timestamp]) {
+    paneles.ana[timestamp] = {
+      nuclear: null,
+      citoplasmatico: null,
+      observacion: null,
+      meta: { fechaValidacion: timestamp }
+    };
+  }
+  return paneles.ana[timestamp];
+}
+
+function getClostridiumPanel(timestamp) {
+  if (!paneles.clostridium[timestamp]) {
+    paneles.clostridium[timestamp] = {
+      toxinaA: null,
+      toxinaB: null,
+      gdh: null,
+      meta: { fechaValidacion: timestamp }
+    };
+  }
+  return paneles.clostridium[timestamp];
+}
+
 function limpiarTextoMorfologia(raw) {
   return String(raw || "")
     .replace(/\u00A0/g, " ")
@@ -437,9 +551,14 @@ function nombreDiferencialManual(pruebaRaw) {
         const target = esMicro
           ? paneles.orina[timestamp].micro
           : paneles.orina[timestamp].fisico;
+        // Alias de visualización dentro del panel de orina
+        let pruebaVista = pruebaUp;
+        if (pruebaUp === "CUERPOS CETONICOS" || pruebaUp === "CUERPOS CETONICOS EN ORINA") {
+          pruebaVista = "Cetonuria";
+        }
 
-        if (!target[pruebaUp]) target[pruebaUp] = [];
-        target[pruebaUp].push(valor);
+        if (!target[pruebaVista]) target[pruebaVista] = [];
+        target[pruebaVista].push(valor);
 
         if (!filas[ORINA_ESTUDIO]) filas[ORINA_ESTUDIO] = {};
         filas[ORINA_ESTUDIO][timestamp] = "__ORINA_MODAL__";
@@ -596,6 +715,77 @@ function nombreDiferencialManual(pruebaRaw) {
         return;
       }
 
+      // ===== ANA =====
+
+      if (esEstudioANA(estudioUp)) {
+        const panel = getAnaPanel(timestamp);
+
+        if (pruebaUp.includes("PATRON NUCLEAR")) {
+          panel.nuclear = parseResultadoANA(valor);
+        } else if (pruebaUp.includes("PATRON CITOPLASMATICO")) {
+          panel.citoplasmatico = parseResultadoANA(valor);
+        } else if (pruebaUp.includes("OBSERVACION")) {
+          panel.observacion = limpiarTextoANA(valor);
+        }
+
+        const nombreFila = "Ac ANA";
+        if (!filas[nombreFila]) filas[nombreFila] = {};
+
+        const nuclearPos = panel.nuclear?.positivo === true;
+        const citoPos = panel.citoplasmatico?.positivo === true;
+        const algunPositivo = nuclearPos || citoPos;
+
+        filas[nombreFila][timestamp] = algunPositivo
+          ? "__ANA_MODAL__::positivo"
+          : "__ANA_MODAL__::negativo";
+
+        return;
+      }
+
+      // ===== Clostridium =====
+
+      if (esEstudioClostridium(estudioRaw)) {
+        const panel = getClostridiumPanel(timestamp);
+
+        const valorNorm = normalizarResultadoClostridium(valor);
+
+        const pruebaNorm = String(pruebaRaw || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toUpperCase();
+
+        if (pruebaNorm.includes("TOXINA A")) {
+          panel.toxinaA = valorNorm;
+        } else if (pruebaNorm.includes("TOXINA B")) {
+          panel.toxinaB = valorNorm;
+        } else if (
+          pruebaNorm.includes("GLUTAMATO DESHIDROGENASA") ||
+          pruebaNorm.includes("GDH")
+        ) {
+          panel.gdh = valorNorm;
+        }
+
+      const nombreFila = "Test rápido C. difficile";
+      if (!filas[nombreFila]) filas[nombreFila] = {};
+      examenesExtra.add(nombreFila);
+
+      const vals = [panel.toxinaA, panel.toxinaB, panel.gdh].filter(v => v !== null && v !== undefined && String(v).trim() !== "");
+      const todosNegativos = vals.length === 3 && vals.every(esNegativoClostridium);
+      const algunoPositivo = vals.some(esPositivoClostridium);
+
+      if (algunoPositivo) {
+        filas[nombreFila][timestamp] = "__CDIFF_MODAL__::positivo";
+      } else if (todosNegativos) {
+        filas[nombreFila][timestamp] = "__CDIFF_MODAL__::negativo";
+      } else {
+        filas[nombreFila][timestamp] = "__CDIFF_MODAL__::indeterminado";
+      }
+
+      return;
+    }
+
       // ===== FLUJO NORMAL (matriz clásica) =====
 
       // Mapeo de nombres alternativos
@@ -705,14 +895,46 @@ return {
 function construirResumenInfecciosoDesdeData(matriz, data) {
   const items = [];
 
+    function normalizarNombreInfeccioso(examenRaw) {
+    const up = String(examenRaw || "").toUpperCase().replace(/\s+/g, " ").trim();
+
+    if (!up) return "";
+
+    if (up.includes("HEMOCULT")) return "Hemocultivo";
+    if (up.includes("UROCULT")) return "Urocultivo";
+
+    if (
+      up.includes("ASPIRADO TRAQUEAL") ||
+      up.includes("SECRECION TRAQUEAL") ||
+      (up.includes("CULTIVO DE SECRECION") && up.includes("TRAQUE"))
+    ) {
+      return "Cultivo secreción traqueal";
+    }
+
+    if (up.includes("LCR") || up.includes("CEFALORRAQUIDEO")) {
+      return "Cultivo LCR";
+    }
+
+    if (up.includes("PLEURAL")) return "Cultivo líquido pleural";
+    if (up.includes("PERITONEAL")) return "Cultivo líquido peritoneal";
+    if (up.includes("PUNTA DE CATETER") || up.includes("CATETER")) {
+      return "Cultivo punta de catéter";
+    }
+
+    if (up.includes("LIQUIDO")) return "Cultivo de líquido";
+
+    return String(examenRaw || "").trim();
+  }
+
   // 1) Cultivos: reutilizar paneles ya construidos por la vista base
   Object.entries(matriz?.paneles?.cultivos || {}).forEach(([timestamp, bucket]) => {
     Object.entries(bucket || {}).forEach(([estudioKey, panel]) => {
+      const examenCultivo = panel?.displayName || panel?.estudioBase || panel?.estudio || estudioKey;
       items.push({
         timestamp,
         fecha: timestamp,
         tipo: "cultivo",
-        examen: panel?.displayName || panel?.estudioBase || panel?.estudio || estudioKey,
+        examen: normalizarNombreInfeccioso(examenCultivo),
         resumen: resumirCultivo(panel),
         estudioKey
       });

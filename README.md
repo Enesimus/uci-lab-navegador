@@ -76,7 +76,11 @@ Extensión Chrome (Manifest V3).
 
 ```chrome.storage.local```
 
+<<<<<<< HEAD
 Persistencia por paciente (UCI_\<rut>)
+=======
+Persistence per patient: (UCI_\<rut>)
+>>>>>>> dev
 
 ### 3.3 Modelo de datos
 
@@ -96,7 +100,7 @@ Persistencia por paciente (UCI_\<rut>)
 
 ```
 
-## 3.4 Flujo general de procesamiento y visualización
+## 3.4 General Processing and Visualization Flow
 
 ```mermaid
 flowchart TD
@@ -205,15 +209,26 @@ La dirección clínica, conceptual y las decisiones funcionales corresponden al 
 
 ## 9. Estado Actual
 
-Versión: 1.4
+Version: 1.5.0
 
 Estado: versión estable con:
 
+<<<<<<< HEAD
 - visualización longitudinal de exámenes
 - soporte para cultivos y estudios especiales
 - resumen infeccioso
 - exportación CSV
 - exportación e importación JSON para respaldo y portabilidad de datos
+=======
+- longitudinal laboratory visualization
+- culture and special study support
+- infectious summary
+- CSV export
+- JSON export/import for backup and data portability
+- improved print behavior for paginated output
+- grouped visualization for special studies such as ANA and Rapid Clostridium difficile Test
+- updated viewer toolbar with direct JSON export/import actions
+>>>>>>> dev
 
 ---
 

@@ -1,23 +1,58 @@
-body { 
-  font-family: system-ui, Arial, sans-serif; 
-  margin: 0; 
-  padding: 0 15px;
-  padding-top: 15px !important;
+body {
+  font-family: system-ui, Arial, sans-serif;
+  margin: 0;
+  padding: 0 10px;
+  padding-top: 10px !important;
 }
-.topbar { 
-  position: sticky; 
-  top: 0; 
-  background: #ebd882ee; 
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.15);
-  padding: 10px; 
-  z-index: 10; 
+  background: linear-gradient(135deg, #0f4c81 0%, #1d6fa5 100%);
+  color: #fff;
 }
+
 .viewer-title {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: 0;
+  color: #fff;
+}
+
+.topbar .row,
+.topbar label,
+.topbar .viewer-title {
+  color: #fff;
+}
+
+.topbar input,
+.topbar select {
+  background: #fff;
+  color: #222;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.group.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+}
+
+.group.actions button {
+  border-radius: 10px;
+}
+
+#btnExportarJSON,
+#btnImportarJSON {
   font-weight: 600;
-  padding: 10px 14px 6px 14px;
-  color: #000000;
-  letter-spacing: 0.3px;
 }
 .row { 
   display: flex; 
@@ -29,11 +64,6 @@ body {
   display: flex; 
   flex-direction: column; 
   gap: 4px; 
-}
-.actions { 
-  flex-direction: row; 
-  align-items: center; 
-  gap: 8px; 
 }
 .spacer { 
   flex: 1; 
@@ -270,12 +300,35 @@ td.empty {
   display: none;
 }
 
+.micro-table th:nth-child(2),
+.micro-table td:nth-child(2) {
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.micro-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.micro-table th:nth-child(1),
+.micro-table td:nth-child(1) {
+  width: 150px;
+}
+
+.micro-table th:nth-child(2),
+.micro-table td:nth-child(2) {
+  width: 280px;
+}
+
 @media print {
 
   @page {
     /* No forzamos tamaño: el navegador podrá usar Carta u Oficio.
        En ambos casos en vertical el ancho útil es equivalente. */
-    margin: 12mm;
+    margin: 10mm;
   }
 
   body {
@@ -283,13 +336,30 @@ td.empty {
     padding: 0 !important;
   }
 
-  /* Ocultar UI normal y la tabla interactiva original */
+  /* Ocultar UI normal */
   .topbar,
   .estado,
-  details.filters,
-  #tablaWrap {
+  details.filters {
     display: none !important;
   }
+
+  /* En vista base, se oculta la tabla original porque se reemplaza por .print-pages */
+body.vista-base #tablaWrap {
+  display: none !important;
+}
+
+/* En vista infecciosa, la tabla real sí debe imprimirse */
+body.vista-infecciosa #tablaWrap {
+  display: block !important;
+  max-height: none !important;
+  max-width: none !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+}
+
+/* En impresión, el contenedor no debe “cortar” */
+.table-wrap { max-height: none !important; overflow: visible !important; }
 
   /* Encabezado general del documento */
   .print-header {
@@ -396,25 +466,69 @@ td.empty {
   }
 
   .print-table-wrap {
-    max-height: none !important;
+    display: inline-block !important;
+    width: auto !important;
     max-width: none !important;
+    max-height: none !important;
     overflow: visible !important;
     padding: 0 !important;
     border-top: 0 !important;
+    vertical-align: top;
   }
 
-  .matrix {
-    width: 100%;
+  .print-page {
+    text-align: left;
+  }
+
+  .print-page .matrix {
+    display: inline-table !important;
+    width: auto !important;
+    table-layout: fixed !important;
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+  }
+
+  .print-page .matrix th.corner,
+  .print-page .matrix tbody th.rowhead {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .print-page .matrix thead th:not(.corner),
+  .print-page .matrix tbody td {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+  }
+
+    .print-page .matrix thead th:not(.corner) {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+  }
+
+  .print-page .matrix tbody td {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+    .matrix {
     border-collapse: collapse;
-    font-size: 10px;
-    line-height: 1.15;
   }
 
   .matrix th,
   .matrix td {
-    padding: 3px 4px;
     border: 1px solid #dcdcdc;
-    white-space: nowrap;
+    padding: 3px 4px;
   }
 
   .matrix thead th {
@@ -436,17 +550,11 @@ td.empty {
     text-align: left;
   }
 
-  .rowhead {
-    width: 180px !important;
-    max-width: 180px !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
   .badge-gas {
-  border: 1px solid #000;
-  background: #fff !important;
-  color: #000 !important;
-}
+    border: 1px solid #000;
+    background: #fff !important;
+    color: #000 !important;
+  }
 
   .matrix tbody tr:nth-child(even) td,
   .matrix tbody tr:nth-child(even) th.rowhead {
@@ -487,7 +595,6 @@ td.empty {
     color: #000 !important;
     padding: 2px 6px !important;
   }
-
   /* Para impresoras monocromáticas, dejamos color-control opcional */
   /* * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } */
 }

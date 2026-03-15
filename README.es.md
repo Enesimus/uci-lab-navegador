@@ -41,7 +41,7 @@ El objetivo es transformar información fragmentada en una vista clínica longit
 
 ## 2. Contexto Clínico
 
-- Entorno: Unidad de Cuidados Intensivos Pediátricos como punto de partida. Pudiera extenderse a cualquier unidad de paciente hospitalizado, o en atencion ambulatoria cuando se requiera un seguimiento longitudinal de examenes.
+- Entorno: Unidad de Cuidados Intensivos Pediátricos como punto de partida. Pudiera extenderse a cualquier unidad de paciente hospitalizado, o en atención ambulatoria cuando se requiera un seguimiento longitudinal de exámenes.
 - Necesidad: Visualización rápida de tendencias y evolución de parámetros.
 - Problema actual: Sistemas institucionales presentan resultados en forma episódica, no longitudinal.
 
@@ -194,7 +194,7 @@ La dirección clínica, conceptual y las decisiones funcionales corresponden al 
 
 ## 9. Estado Actual
 
-Versión: 1.4
+Versión: 1.5.0
 
 Estado: versión estable con:
 
@@ -203,6 +203,9 @@ Estado: versión estable con:
 - resumen infeccioso
 - exportación CSV
 - exportación e importación JSON para respaldo y portabilidad de datos
+- mejoras de impresión en salida paginada
+- visualización agrupada de estudios especiales como ANA y Test rápido de Clostridium difficile
+- botonera del viewer actualizada con acciones directas de exportación e importación JSON
 
 ---
 
@@ -259,7 +262,7 @@ Subclave: <hash>
 - Alineación numérica
 - Separadores visuales
 
-#### Ejemplo de visualizacion
+#### Ejemplo de visualización
 
 ![Vista principal](images\main_screen1.png)
 
@@ -292,7 +295,7 @@ Estructura del archivo exportado:
 
 ```json
 {
-  "format": "uci-lab-extractor",
+  "format": "uci-lab-navegador",
   "version": 1,
   "exportedAt": "...",
   "patientKey": "...",
