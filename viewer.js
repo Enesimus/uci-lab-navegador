@@ -198,6 +198,8 @@ function getDialog() {
     #dlgEspecial .mol-k{width:72%;font-size:13px; padding-right:12px;}
     #dlgEspecial .mol-v{width:28%;font-size:13px;text-align:left;white-space:nowrap;}
     #dlgEspecial .mol-v.detected{color:#b00020; font-weight:600;}
+    #dlgEspecial .ana-pos{color:#8b0000}
+    #dlgEspecial .ana-neg{color:#666}
     @media (max-width:720px){#dlgEspecial .grid{grid-template-columns:1fr} #dlgEspecial .k{min-width:0}}
   `;
 
@@ -225,6 +227,9 @@ function getDialog() {
       }
       if (state._lastModal.tipo === "CITOQUIMICO") {
         openCitoquimicoModal(state._lastModal.timestamp, state._lastModal.estudioKey);
+      }
+      if (state._lastModal.tipo === "ANA") {
+        openAnaModal(state._lastModal.timestamp);
       }
     }
     });
@@ -627,6 +632,108 @@ function openMolecularModal(timestamp, estudioKey) {
   if (!dlg.open) dlg.showModal();
 }
 
+function buildAnaHtml(panel) {
+  const esc = escapeTxt;
+
+  const nuclear = panel?.nuclear || {};
+  const cito = panel?.citoplasmatico || {};
+  const obs = String(panel?.observacion || "").trim();
+
+  const fmtEstado = (positivo) => {
+    if (positivo === true) return `<span class="ana-pos"><b>Positivo</b></span>`;
+    if (positivo === false) return `<span class="ana-neg">Negativo</span>`;
+    return "—";
+  };
+
+  const fmtValor = (v) => {
+    const txt = String(v || "").trim();
+    return txt ? esc(txt) : "—";
+  };
+
+  return `
+    <div class="sec">
+      <h4>Patrón nuclear</h4>
+      <table class="mol-table">
+        <tbody>
+          <tr>
+            <td class="mol-k">Resultado</td>
+            <td class="mol-v">${fmtEstado(nuclear.positivo)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Patrón</td>
+            <td class="mol-v">${fmtValor(nuclear.patron)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Título</td>
+            <td class="mol-v">${fmtValor(nuclear.titulo)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec">
+      <h4>Patrón citoplasmático</h4>
+      <table class="mol-table">
+        <tbody>
+          <tr>
+            <td class="mol-k">Resultado</td>
+            <td class="mol-v">${fmtEstado(cito.positivo)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Patrón</td>
+            <td class="mol-v">${fmtValor(cito.patron)}</td>
+          </tr>
+          <tr>
+            <td class="mol-k">Título</td>
+            <td class="mol-v">${fmtValor(cito.titulo)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    ${
+      obs && obs !== "."
+        ? `
+          <div class="sec">
+            <h4>Observación</h4>
+            <div class="v">${esc(obs)}</div>
+          </div>
+        `
+        : ""
+    }
+  `;
+}
+
+function openAnaModal(timestamp) {
+  const matriz = state.matriz;
+  const panel = matriz?.paneles?.ana?.[timestamp];
+  if (!panel) {
+    setEstado("No hay panel ANA para esta fecha.", true);
+    return;
+  }
+
+  state._lastModal = { tipo: "ANA", timestamp };
+
+  const dlg = getDialog();
+  const titulo = dlg.querySelector("#dlgTitulo");
+  const sub = dlg.querySelector("#dlgSub");
+  const body = dlg.querySelector("#dlgBody");
+  const chk = dlg.querySelector("#dlgMostrarTodo");
+  const toolbar = chk.closest(".dlg-toolbar");
+
+  titulo.textContent = "Ac ANA";
+  sub.textContent = (panel?.meta?.fechaValidacion || timestamp)
+    ? `Fecha: ${panel?.meta?.fechaValidacion || timestamp}`
+    : "";
+
+  chk.checked = false;
+  if (toolbar) toolbar.style.display = "none";
+
+  body.innerHTML = buildAnaHtml(panel);
+
+  if (!dlg.open) dlg.showModal();
+}
+
 function parseRutFromUrl() {
   const params = new URLSearchParams(location.search);
   return params.get("rut");
@@ -906,6 +1013,16 @@ function construirTablaHTML(matriz) {
               </td>`;
           }
           
+          if (txt.startsWith("__ANA_MODAL__::")) {
+            const estadoAna = txt.slice("__ANA_MODAL__::".length);
+            const etiqueta = estadoAna === "positivo" ? "Positivo" : "Negativo";
+
+            return `
+              <td class="${cls}" data-col="${idx}">
+                <button class="btn-mini" data-action="ana" data-ts="${escapeHtml(c.timestamp)}">${escapeHtml(etiqueta)}</button>
+              </td>`;
+          }
+
           if (typeof v === "object" && v !== null) {
             const a = String(v.arterial ?? "").trim();
             const ve = String(v.venoso ?? "").trim();
@@ -1028,6 +1145,11 @@ function decorarTablaRenderizada(wrap, matriz, interactive = true) {
       openHemogramaModal(ts, est);
       return;
     }
+
+    if (action === "ana") {
+      openAnaModal(ts);
+      return;
+    }    
   });
 }
 

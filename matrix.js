@@ -38,6 +38,45 @@ const CITO_LCR_CELULAR = new Set([
   "MONONUCLEARES"
 ]);
 
+// ===== ANA =====
+
+function esEstudioANA(estudioUpper) {
+  return estudioUpper.includes("ANTINUCLEO") || estudioUpper.includes("(ANA)");
+}
+
+function construirMarkerANA() {
+  return "__ANA_MODAL__";
+}
+
+function limpiarTextoANA(valor) {
+  return String(valor || "")
+    .replace(/¬+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseResultadoANA(valorRaw) {
+  const txt = limpiarTextoANA(valorRaw);
+  if (!txt) return { raw: "", positivo: null, patron: null, titulo: null };
+
+  const txtUp = txt.toUpperCase();
+
+const positivo =
+    txtUp.includes("POSITIVO") ? true :
+    txtUp.includes("NEGATIVO") ? false :
+    null;
+
+  const mPatron = txt.match(/PATRON\s*:?\s*([^:]+?)(?=\s+TITULO\s*:|$)/i);
+  const mTitulo = txt.match(/TITULO\s*:?\s*([^\s]+.*)$/i);
+
+  return {
+    raw: txt,
+    positivo,
+    patron: mPatron ? mPatron[1].trim() : null,
+    titulo: mTitulo ? mTitulo[1].trim() : null
+  };
+}
+
 // ===== CULTIVOS (panel) =====
 function esEstudioCultivo(estudioUpper) {
   const s = String(estudioUpper || "");
@@ -241,6 +280,7 @@ async function construirMatrizClinica(rut) {
   const paneles = {
     orina: {},
     citoquimicos: {},
+    ana: {},
     cultivos: {},
     moleculares: {},
     hemogramas: {}
@@ -360,6 +400,18 @@ function getHemogramaPanel(timestamp, estudioKey = "FORMULA MANUAL") {
     };
   }
   return paneles.hemogramas[timestamp][estudioKey];
+}
+
+function getAnaPanel(timestamp) {
+  if (!paneles.ana[timestamp]) {
+    paneles.ana[timestamp] = {
+      nuclear: null,
+      citoplasmatico: null,
+      observacion: null,
+      meta: { fechaValidacion: timestamp }
+    };
+  }
+  return paneles.ana[timestamp];
 }
 
 function limpiarTextoMorfologia(raw) {
@@ -603,6 +655,33 @@ function nombreDiferencialManual(pruebaRaw) {
           if (!filas[examen]) filas[examen] = {};
           filas[examen][timestamp] = normalizarResultadoMolecular(valor);
         }
+
+        return;
+      }
+
+      // ===== ANA =====
+
+      if (esEstudioANA(estudioUp)) {
+        const panel = getAnaPanel(timestamp);
+
+        if (pruebaUp.includes("PATRON NUCLEAR")) {
+          panel.nuclear = parseResultadoANA(valor);
+        } else if (pruebaUp.includes("PATRON CITOPLASMATICO")) {
+          panel.citoplasmatico = parseResultadoANA(valor);
+        } else if (pruebaUp.includes("OBSERVACION")) {
+          panel.observacion = limpiarTextoANA(valor);
+        }
+
+        const nombreFila = "Ac ANA";
+        if (!filas[nombreFila]) filas[nombreFila] = {};
+
+        const nuclearPos = panel.nuclear?.positivo === true;
+        const citoPos = panel.citoplasmatico?.positivo === true;
+        const algunPositivo = nuclearPos || citoPos;
+
+        filas[nombreFila][timestamp] = algunPositivo
+          ? "__ANA_MODAL__::positivo"
+          : "__ANA_MODAL__::negativo";
 
         return;
       }
