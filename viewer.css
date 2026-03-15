@@ -331,54 +331,6 @@ body.vista-infecciosa #tablaWrap {
 /* En impresión, el contenedor no debe “cortar” */
 .table-wrap { max-height: none !important; overflow: visible !important; }
 
- /* Tabla más compacta para impresión */
-  .matrix {
-    width: 100% !important;
-    table-layout: fixed !important;
-    font-size: 11px !important;
-    line-height: 1.1 !important;
-  }
-
-  .matrix th,
-  .matrix td {
-    padding: 3px 4px !important;
-  }
-
-  /* Columna de examen más angosta y con salto de línea */
-  .matrix th.corner,
-  .matrix th.rowhead {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-    white-space: normal !important;
-    overflow: hidden !important;
-    text-overflow: clip !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-  }
-
-    /* Encabezados de columnas también más compactos */
-  .matrix thead th:not(.corner) {
-    white-space: normal !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-    font-size: 10px !important;
-    line-height: 1.05 !important;
-  }
-
-  /* Celdas de resultado: mantener una sola línea cuando se pueda */
-  .matrix tbody td {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-
-  /* Botones o marcadores especiales dentro de la tabla */
-  .matrix .btn-mini {
-    font-size: 10px !important;
-    padding: 1px 5px !important;
-  }
-
   /* Encabezado general del documento */
   .print-header {
     display: none !important;
@@ -539,18 +491,14 @@ body.vista-infecciosa #tablaWrap {
     text-overflow: ellipsis !important;
   }
 
-  .matrix {
-    width: 100%;
+    .matrix {
     border-collapse: collapse;
-    font-size: 10px;
-    line-height: 1.15;
   }
 
   .matrix th,
   .matrix td {
-    padding: 3px 4px;
     border: 1px solid #dcdcdc;
-    white-space: nowrap;
+    padding: 3px 4px;
   }
 
   .matrix thead th {
@@ -572,12 +520,52 @@ body.vista-infecciosa #tablaWrap {
     text-align: left;
   }
 
-  .rowhead {
-    width: 180px !important;
-    max-width: 180px !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .badge-gas {
+    border: 1px solid #000;
+    background: #fff !important;
+    color: #000 !important;
   }
+
+  .matrix tbody tr:nth-child(even) td,
+  .matrix tbody tr:nth-child(even) th.rowhead {
+    background: #f3f3f3 !important;
+  }
+
+  .matrix th.day-alt,
+  .matrix td.day-alt {
+    background: #f7f7f7 !important;
+  }
+
+  .matrix th.day-start,
+  .matrix td.day-start {
+    border-left: 2px solid #bdbdbd;
+  }
+
+  .matrix th.last-col,
+  .matrix td.last-col {
+    font-weight: 700;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  .matrix tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .btn-mini {
+    border: 1px solid #aaa !important;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 2px 6px !important;
+  }
+
   .badge-gas {
   border: 1px solid #000;
   background: #fff !important;
