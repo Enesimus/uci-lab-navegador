@@ -9,7 +9,10 @@ Licensed under the GNU General Public License v3.0
 
 // Helpers
 function normTxt(s) {
-  return String(s || "").trim().toUpperCase();
+  return String(s || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 }
 
 function esNoSeObserva(v) {
@@ -78,7 +81,15 @@ const ESTUDIOS_MOLECULARES = new Set([
 const ESTUDIO_PCR_SARS = "PCR SARS COV-2";
 
 function esEstudioMolecular(estudioUpper) {
-  return ESTUDIOS_MOLECULARES.has(String(estudioUpper || "").trim().toUpperCase());
+  const s = normTxt(estudioUpper);
+  if (ESTUDIOS_MOLECULARES.has(s)) return true;
+
+  return (
+    s.includes("PANEL RESPIRATORIO") ||
+    s.includes("PANEL PCR GASTROINTESTINAL") ||
+    s.includes("PANEL PCR MENINGITIS") ||
+    s.includes("PANEL PCR NEUMONIA")
+  );
 }
 
 function construirMarkerMolecular(estudioKey) {

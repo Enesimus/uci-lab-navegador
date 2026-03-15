@@ -778,8 +778,8 @@ function construirPrintHeaderHTML(data, matriz, pageNum = null, totalPages = nul
       <div class="ph-left">
                 <div class="ph-title">${
           state.vista === "infecciosa"
-            ? "UCI Lab Extractor – Resumen Infeccioso"
-            : "UCI Lab Extractor – Resumen Longitudinal"
+            ? "UCI Lab Navegador – Resumen Infeccioso"
+            : "UCI Lab Navegador – Resumen Longitudinal"
         }</div>
         <div class="ph-sub">
           <b>${escapeHtml(nombre)}</b> · RUT: <b>${escapeHtml(rut)}</b> · Órdenes: <b>${nOrdenes}</b>

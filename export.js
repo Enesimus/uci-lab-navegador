@@ -114,7 +114,7 @@ function descargarJSON(nombreArchivo, data) {
 
 function construirBackupPacienteJSON(rut, data) {
   return {
-    format: "uci-lab-extractor",
+    format: "uci-lab-navegador",
     version: 1,
     exportedAt: new Date().toISOString(),
     patientKey: rut,
@@ -127,8 +127,8 @@ function validarBackupPacienteJSON(payload) {
     throw new Error("Archivo JSON inválido.");
   }
 
-  if (payload.format !== "uci-lab-extractor") {
-    throw new Error("El archivo no corresponde a UCI Lab Extractor.");
+  if (payload.format !== "uci-lab-navegador") {
+    throw new Error("El archivo no corresponde a UCI Lab Navegador.");
   }
 
   if (payload.version !== 1) {
