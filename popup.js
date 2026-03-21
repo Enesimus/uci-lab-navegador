@@ -5,7 +5,7 @@ Copyright (C) 2026 Juan Sepúlveda Sepúlveda
 Licensed under the GNU General Public License v3.0
 */
 
-// popup.js 
+// popup.js
 
 const $ = (id) => document.getElementById(id);
 
@@ -20,14 +20,19 @@ const btnExportar = $("btnExportar");
 const btnExportarJSON = $("btnExportarJSON");
 const btnImportarJSON = $("btnImportarJSON");
 const fileImportJSON = $("fileImportJSON");
-const btnVer = $("btnVer"); // aún disabled en html
+const btnExportarBackupGlobal = $("btnExportarBackupGlobal");
+const btnImportarBackupGlobal = $("btnImportarBackupGlobal");
+const fileImportBackupGlobal = $("fileImportBackupGlobal");
+const btnVer = $("btnVer");
 
 function setBusy(isBusy) {
   if (btnExtraer) btnExtraer.disabled = isBusy;
   if (btnExportar) btnExportar.disabled = isBusy;
   if (btnExportarJSON) btnExportarJSON.disabled = isBusy;
   if (btnImportarJSON) btnImportarJSON.disabled = isBusy;
-  // btnVer no depende de busy; depende de si hay rut válido
+  if (btnExportarBackupGlobal) btnExportarBackupGlobal.disabled = isBusy;
+  if (btnImportarBackupGlobal) btnImportarBackupGlobal.disabled = isBusy;
+  // btnVer depende de si existe rut válido
 }
 
 function aplicarVersionApp() {
@@ -91,7 +96,6 @@ function renderPacienteDesdeData(data, rutFallback = "") {
   if (elOrdenes) elOrdenes.textContent = `Órdenes: ${total}`;
 }
 
-// Lee storage y refresca cabecera
 async function refrescarPacienteDesdeRut(rut) {
   const r = (rut || "").trim();
   if (!r) {
@@ -107,6 +111,7 @@ async function refrescarPacienteDesdeRut(rut) {
       if (elOrdenes) elOrdenes.textContent = "Órdenes: 0";
       return;
     }
+
     renderPacienteDesdeData(data, r);
   } catch (e) {
     console.warn("No se pudo leer paciente desde storage:", e);
@@ -114,11 +119,81 @@ async function refrescarPacienteDesdeRut(rut) {
   }
 }
 
+async function exportarBackupGlobalManual() {
+  setBusy(true);
+
+  try {
+    const payload = await construirBackupGlobal();
+
+    const fecha = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    descargarJSON(`UCI_Backup_Global_${fecha}.json`, payload);
+
+    setBusy(false);
+    showStatus("✔ Respaldo global exportado.", "success", 4000);
+  } catch (e) {
+    console.error("Error exportando respaldo global:", e);
+    setBusy(false);
+    showStatus("Error al exportar respaldo global.", "error");
+    alert(`Error al exportar respaldo global.\n${e?.message || e}`);
+  }
+}
+
+async function importarBackupGlobalDesdeArchivo(file) {
+  if (!file) return;
+
+  setBusy(true);
+
+  try {
+    const contenido = await leerArchivoComoTexto(file);
+    const payload = JSON.parse(contenido);
+
+    const res = await importarBackupGlobal(payload, {
+      merge: false,
+      restaurarRutActual: true
+    });
+
+    const rut = await obtenerRutActual();
+    await refrescarPacienteDesdeRut(rut);
+    setVerEnabled(rut);
+
+    setBusy(false);
+    showStatus(
+      `✔ Respaldo global importado (${res.totalPacientes} pacientes).`,
+      "success",
+      5000
+    );
+  } catch (e) {
+    console.error("Error importando respaldo global:", e);
+    setBusy(false);
+    showStatus("Error al importar respaldo global.", "error");
+    alert(`Error al importar respaldo global.\n${e?.message || e}`);
+  } finally {
+    if (fileImportBackupGlobal) fileImportBackupGlobal.value = "";
+  }
+}
+
+async function intentarAutoRestore() {
+  try {
+    const res = await restaurarBackupAutomaticoSiCorresponde();
+
+    if (res?.restored) {
+      showStatus(
+        `✔ Respaldo automático restaurado (${res.totalPacientes} pacientes).`,
+        "success",
+        5000
+      );
+    }
+
+    return res;
+  } catch (e) {
+    console.warn("No se pudo evaluar restauración automática:", e);
+    return { restored: false, reason: "restore_error" };
+  }
+}
+
 /**
  * Upsert hash-based:
  * data = { paciente, ordenes: { [hash]: {hash, orden, ordenOriginal, timestamp, fechaExtraccion, registros } } }
- *
- * Compatible con matrix.js (usa contenido.timestamp/fechaExtraccion/registros + label orden/ordenOriginal/hash)
  */
 async function upsertOrdenDesdeContexto(contexto) {
   const paciente = contexto?.paciente;
@@ -128,7 +203,6 @@ async function upsertOrdenDesdeContexto(contexto) {
   const hash = String(contexto?.hash || "").trim();
   if (!hash) throw new Error("Contexto sin hash (ID estable).");
 
-  // Intentar mantener compatibilidad con extractor: orden numérica + ordenOriginal + timestamp
   const orden = (contexto?.orden != null) ? String(contexto.orden).trim() : "";
   const ordenOriginal = (contexto?.ordenOriginal != null) ? String(contexto.ordenOriginal).trim() : "";
   const timestamp = (contexto?.timestamp != null) ? String(contexto.timestamp).trim() : null;
@@ -136,17 +210,19 @@ async function upsertOrdenDesdeContexto(contexto) {
   const registros = Array.isArray(contexto?.registros) ? contexto.registros : [];
   if (!registros.length) throw new Error("Orden sin registros.");
 
-  // Leer data actual
-  const actual = (await obtener(rut)) || { paciente: paciente, ordenes: {} };
+  const actual = (await obtener(rut)) || {
+    paciente,
+    ordenes: {},
+    schemaVersion: STORAGE_SCHEMA_VERSION
+  };
 
-  // Mantener paciente más reciente (por si cambian nombres/formatos)
   actual.paciente = paciente || actual.paciente || { rut, nombre: "" };
   if (!actual.ordenes) actual.ordenes = {};
+  if (!actual.schemaVersion) actual.schemaVersion = STORAGE_SCHEMA_VERSION;
 
-  // Upsert
   actual.ordenes[hash] = {
     hash,
-    orden: orden || undefined,               // opcional
+    orden: orden || undefined,
     ordenOriginal: ordenOriginal || undefined,
     timestamp: timestamp || undefined,
     fechaExtraccion: new Date().toISOString(),
@@ -154,10 +230,9 @@ async function upsertOrdenDesdeContexto(contexto) {
   };
 
   await guardar(rut, actual);
-
-  // Guardar rut actual
   await guardarRutActual(rut);
   setVerEnabled(rut);
+
   return { rut, totalOrdenes: Object.keys(actual.ordenes).length };
 }
 
@@ -225,7 +300,6 @@ async function exportarCSV() {
       setBusy(true);
     }
 
-    // exportarPacienteCSV es async en export.js 
     await exportarPacienteCSV(rut);
 
     await refrescarPacienteDesdeRut(rut);
@@ -307,6 +381,8 @@ async function importarJSONDesdeArchivo(file) {
 // ==== Init ====
 document.addEventListener("DOMContentLoaded", async () => {
   try {
+    await intentarAutoRestore();
+
     const rut = await obtenerRutActual();
     await refrescarPacienteDesdeRut(rut);
     setVerEnabled(rut);
@@ -325,7 +401,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   btnExtraer?.addEventListener("click", () => {
-    // evitamos doble click ansioso
     if (btnExtraer.disabled) return;
     extraerOrdenActiva();
   });
@@ -349,5 +424,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     const file = e.target.files?.[0];
     if (!file) return;
     await importarJSONDesdeArchivo(file);
+  });
+
+  btnExportarBackupGlobal?.addEventListener("click", () => {
+    if (btnExportarBackupGlobal.disabled) return;
+    exportarBackupGlobalManual();
+  });
+
+  btnImportarBackupGlobal?.addEventListener("click", () => {
+    if (btnImportarBackupGlobal.disabled) return;
+    fileImportBackupGlobal?.click();
+  });
+
+  fileImportBackupGlobal?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await importarBackupGlobalDesdeArchivo(file);
   });
 });

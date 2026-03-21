@@ -8,6 +8,19 @@ This format follows the *Keep a Changelog* style with approximate semantic versi
 
 ---
 
+## [1.6.0] - 2026-03-20
+
+### Added
+
+- Automatic global backup at actualization.
+- Allow manual global backup and restore.
+
+### Improved
+
+- Hide "LAMINA" from "HEMOGRAMA MANUAL" at longitudinal viewer.
+
+---
+
 ## [1.5.0] - 2026-03-15
 
 ### Added

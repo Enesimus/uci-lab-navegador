@@ -338,16 +338,15 @@ En conjunto, el objetivo es transformar datos de laboratorio presentados de form
 
 ---
 
-## 12. Clinical Use Case
+## 12. Caso de Uso Clínico
 
-In pediatric intensive care units (PICU), patients frequently undergo multiple laboratory tests per day. Laboratory information systems (LIS) typically present results organized by individual test reports, which makes longitudinal interpretation of multiple parameters difficult.
+En las unidades de cuidados intensivos pediátricos (UCIP), los pacientes frecuentemente requieren varios controles de exámenes de laboratorio en un mismo dia. La información del Sistema de Laboratorio (LIS) presenta los resultados organizados por reportes de exámenes individuales, lo que dificulta la interpretación longitudinal de múltiples parámetros.
 
-For example, during the clinical review of a patient with septic shock, the clinician may need to simultaneously evaluate trends in lactate, arterial blood gases, inflammatory markers, renal function, and hematologic parameters across several days.
+Por ejemplo, durante la revisión clínica de un paciente con shock séptico, el clínico puede necesitar evaluar simultáneamente las tendencias de lactato, gases arteriales, marcadores inflamatorios, función renal, y parámetros hematológicos a lo largo de varios días.
 
-In the standard LIS interface, these results are distributed across multiple reports, requiring the clinician to manually integrate information from different screens.
+En la interfaz estándar del LIS, estos resultados están distribuidos a través de varios reportes, requiriendo la integración manual por parte del clínico desde diferentes pantallas.
 
-UCI Lab Navegador reorganizes these results into a single longitudinal matrix centered on the patient, where each column represents a sampling time and each row corresponds to a laboratory parameter or clinical
-panel. This visualization facilitates rapid identification of trends and supports clinical interpretation during bedside rounds.
+UCI Lab Navegador reconoce estos resultados en una matriz longitudinal centrada en el paciente, donde cada columna representa una toma de muestra, y cada fila corresponde a un parámetro o panel clínico. Esta visualización facilita la identificación rápida de tendencias y apoya la interpretación clínica durante el proceso de atención.
 
 ---
 

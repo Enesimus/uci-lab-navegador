@@ -1534,10 +1534,29 @@ async function cargarPaciente(rut) {
   setEstado("");
 }
 
+async function intentarAutoRestoreViewer() {
+  try {
+    const res = await restaurarBackupAutomaticoSiCorresponde();
+
+    if (res?.restored) {
+      setEstado(
+        `Se restauró respaldo automático (${res.totalPacientes} pacientes).`
+      );
+    }
+
+    return res;
+  } catch (e) {
+    console.warn("No se pudo evaluar restauración automática en viewer:", e);
+    return { restored: false, reason: "restore_error" };
+  }
+}
+
 async function init() {
   state.vista = parseVistaFromUrl();
 
   aplicarVersionApp();
+
+  await intentarAutoRestoreViewer();
 
   const btnResumen = $("btnResumenInfeccioso");
   if (btnResumen) {

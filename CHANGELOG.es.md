@@ -6,6 +6,21 @@ Todos los cambios relevantes de este proyecto serán documentados aquí.
 
 El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproximado.
 
+---
+
+## [1.6.0] - 2026-03-20
+
+### Added
+
+- Respaldo global automático en actualizaciones.
+- Posibilidad de respaldo y restauración manual de los registros.
+
+### Improved
+
+- Ocultar "LAMINA" del "HEMOGRAMA MANUAL" en el visualizador longitudinal.
+
+---
+
 ## [1.5.0] - 2026-03-15
 
 ### Added
