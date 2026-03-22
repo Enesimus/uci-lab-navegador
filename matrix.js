@@ -20,6 +20,36 @@ function esNoSeObserva(v) {
   return t === "NO SE OBSERVAN" || t === "NO SE OBSERVA" || t === "NO SE OBSERVAN.";
 }
 
+// =========================
+// Cálculos clínicos - gasometría arterial
+// =========================
+
+const FILA_FIO2 = "FiO2";
+const FILA_PMVA = "PMVA";
+const FILA_PAFI = "PAFI";
+const FILA_IOX = "IOX";
+
+function normalizarNumeroClinico(valor) {
+  if (valor === null || valor === undefined) return null;
+
+  const n = Number(String(valor).replace(",", ".").trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function numClinico(v) {
+  return normalizarNumeroClinico(v);
+}
+
+function fmtEntero(n) {
+  if (!Number.isFinite(n)) return "";
+  return String(Math.round(n));
+}
+
+function fmt1(n) {
+  if (!Number.isFinite(n)) return "";
+  return String(Math.round(n * 10) / 10);
+}
+
 // ===== ORINA COMPLETA (panel) =====
 const ORINA_ESTUDIO = "ORINA COMPLETA";
 const CITOQUIMICO_LCR_ESTUDIO = "CITOQUIMICO LCR";
@@ -262,6 +292,7 @@ async function construirMatrizClinica(rut) {
   if (!data || !data.ordenes) return null;
 
   const paciente = data.paciente;
+  const calculosGasometricos = data?.calculos?.gasometria || {};
 
   const columnas = Object.entries(data.ordenes)
     .map(([hashKey, contenido]) => {
@@ -814,6 +845,47 @@ function nombreDiferencialManual(pruebaRaw) {
     });
   });
 
+  // ===== CÁLCULOS GASOMÉTRICOS DERIVADOS =====
+  columnas.forEach(col => {
+    const timestamp = col.timestamp;
+    const calc = calculosGasometricos[timestamp];
+    if (!calc) return;
+
+    const pao2 = numClinico(filas["pO2_A"]?.[timestamp]);
+    const fio2 = numClinico(calc.fio2);
+    const map = numClinico(calc.map);
+
+    // Mostrar FiO2 / PAM solo si fueron ingresadas válidamente
+    // if (fio2 > 0) {
+    //   if (!filas[FILA_FIO2]) filas[FILA_FIO2] = {};
+    //   filas[FILA_FIO2][timestamp] = fmtEntero(fio2);
+    //   examenesExtra.add(FILA_FIO2);
+    // }
+
+    // if (map > 0) {
+    //   if (!filas[FILA_PMVA]) filas[FILA_PMVA] = {};
+    //   filas[FILA_PMVA][timestamp] = fmt1(map);
+    //   examenesExtra.add(FILA_PMVA);
+    // }
+
+    // PAFI e IOX solo si existe pO2 arterial válida
+    if (!(pao2 > 0)) return;
+
+    if (fio2 > 0) {
+      const pafi = pao2 / (fio2 / 100);
+      if (!filas[FILA_PAFI]) filas[FILA_PAFI] = {};
+      filas[FILA_PAFI][timestamp] = fmtEntero(pafi);
+      examenesExtra.add(FILA_PAFI);
+    }
+
+    if (fio2 > 0 && map > 0) {
+      const iox = (map * fio2) / pao2;
+      if (!filas[FILA_IOX]) filas[FILA_IOX] = {};
+      filas[FILA_IOX][timestamp] = fmt1(iox);
+      examenesExtra.add(FILA_IOX);
+    }
+  });
+
   // Orden final de filas: base + extras + paneles conocidos (si existen)
   const filasEspeciales = [];
   if (filas[ORINA_ESTUDIO]) filasEspeciales.push(ORINA_ESTUDIO);
@@ -879,7 +951,32 @@ if (filas["FORMULA MANUAL"]) {
   }
 }
 
-ordenFilasFinal.push(...extrasOrdenados);
+const filasCalculoGas = [FILA_PAFI, FILA_IOX]
+  .filter(ex => filas[ex]);
+
+const extrasOrdenadosSinCalculo = extrasOrdenados.filter(
+  ex => !filasCalculoGas.includes(ex)
+);
+
+ordenFilasFinal.push(...extrasOrdenadosSinCalculo);
+
+// Insertar cálculos discretamente después del bloque de gases
+const idxSatO2V = ordenFilasFinal.indexOf("satO2_V");
+const idxSatO2A = ordenFilasFinal.indexOf("satO2_A");
+const idxSatO2 = ordenFilasFinal.indexOf("satO2");
+
+const idxGasFinal = [idxSatO2V, idxSatO2A, idxSatO2]
+  .filter(i => i >= 0)
+  .sort((a, b) => b - a)[0];
+
+if (filasCalculoGas.length) {
+  if (idxGasFinal >= 0) {
+    ordenFilasFinal.splice(idxGasFinal + 1, 0, ...filasCalculoGas);
+  } else {
+    ordenFilasFinal.push(...filasCalculoGas);
+  }
+}
+
 ordenFilasFinal.push(...filasEspeciales);
 
 return {

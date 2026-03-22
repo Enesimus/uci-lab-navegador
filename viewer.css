@@ -132,6 +132,11 @@ body {
   color: #fff;
 }
 
+.calc-highlight {
+  font-weight: bold;
+  color: #000;
+}
+
 .badge-v {
   background: #2980b9;
   color: #fff;

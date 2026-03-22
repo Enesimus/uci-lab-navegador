@@ -6,6 +6,55 @@ Todos los cambios relevantes de este proyecto serán documentados aquí.
 
 El formato sigue el estilo de *Keep a Changelog* y versionado semántico aproximado.
 
+---
+
+## [1.6.1] - 2026-03-22
+
+### Added
+
+- Cálculo clínico integrado para gases arteriales:
+  - Relación PaO2/FiO2 (PAFI)
+  - Índice de Oxigenación (IOX)
+- Interfaz para ingreso manual de FiO2 y PMVA por muestra
+- Persistencia de cálculos gasométricos por timestamp
+- Botón para eliminar cálculos gasométricos individuales
+- Resaltado visual de PAFI e IOX en la matriz clínica
+
+### Changed
+
+- Simplificación de visualización:
+  - Se ocultan filas intermedias (FiO2 y PMVA)
+  - Se muestran solo resultados clínicamente relevantes (PAFI, IOX)
+- Mejora en consistencia de renderizado de celdas (eliminación de valores `undefined`)
+- Refactor de `matrix.js` para separar lógica de cálculo de persistencia
+
+### Fixed
+
+- Error en inicialización del viewer por funciones no definidas
+- Problemas de renderizado al aplicar formato a celdas de cálculo
+- Duplicación de funciones de cálculo gasométrico en `storage.js`
+- Inconsistencias al actualizar cálculos existentes
+
+### Technical
+
+- Introducción de modelo de cálculos clínicos persistentes en `storage.js`
+- Estructura preparada para futuras reglas clínicas (highlight semántico)
+
+---
+
+## [1.6.0] - 2026-03-20
+
+### Added
+
+- Respaldo global automático en actualizaciones.
+- Posibilidad de respaldo y restauración manual de los registros.
+
+### Improved
+
+- Ocultar "LAMINA" del "HEMOGRAMA MANUAL" en el visualizador longitudinal.
+
+---
+
 ## [1.5.0] - 2026-03-15
 
 ### Added
