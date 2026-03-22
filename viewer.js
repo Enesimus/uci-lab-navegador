@@ -141,6 +141,12 @@ function valorCeldaVacio(v) {
   return String(v).trim() === "";
 }
 
+function celdaTieneArterial(v) {
+  if (!v || typeof v !== "object") return false;
+  const a = String(v.arterial ?? "").trim();
+  return a !== "";
+}
+
 function getDialog() {
   let dlg = document.getElementById("dlgEspecial");
   if (dlg) return dlg;
@@ -237,6 +243,62 @@ function getDialog() {
 
     }
     });
+
+  return dlg;
+}
+
+function getGasCalcDialog() {
+  let dlg = document.getElementById("dlgGasCalc");
+  if (dlg) return dlg;
+
+  dlg = document.createElement("dialog");
+  dlg.id = "dlgGasCalc";
+    dlg.innerHTML = `
+    <form method="dialog" class="dlg-form" id="dlgGasCalcForm">
+      <div class="dlg-head">
+        <div>
+          <div class="dlg-title">Cálculo gasométrico</div>
+          <div id="dlgGasCalcSub" class="dlg-sub"></div>
+        </div>
+        <button value="cancel" class="dlg-close" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="dlg-body">
+        <div class="group" style="margin-bottom:10px">
+          <label for="gasFiO2">FiO2 (%)</label>
+          <input id="gasFiO2" type="number" step="1" min="1" max="100" placeholder="Ej: 60" />
+        </div>
+
+        <div class="group">
+          <label for="gasMap">PMVA (cmH2O)</label>
+          <input id="gasMap" type="number" step="0.1" min="0.1" placeholder="Ej: 14" />
+        </div>
+      </div>
+
+      <div class="dlg-foot">
+        <button type="button" id="btnGasCalcBorrar" class="danger">Borrar cálculo</button>
+        <button type="button" id="btnGasCalcGuardar">Guardar</button>
+        <button value="cancel">Cancelar</button>
+      </div>
+    </form>
+  `;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    dialog#dlgGasCalc{max-width:min(420px,92vw);width:92vw;border:1px solid #ccc;border-radius:12px;padding:0}
+    dialog#dlgGasCalc::backdrop{background:rgba(0,0,0,.2)}
+    #dlgGasCalc .dlg-form{margin:0}
+    #dlgGasCalc .dlg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #ddd}
+    #dlgGasCalc .dlg-title{font-weight:700;font-size:15px}
+    #dlgGasCalc .dlg-sub{opacity:.8;font-size:12px;margin-top:2px}
+    #dlgGasCalc .dlg-body{padding:12px 14px}
+    #dlgGasCalc .dlg-foot{display:flex;justify-content:flex-end;gap:10px;padding:10px 14px;border-top:1px solid #eee}
+    #dlgGasCalc label{display:block;font-size:12px;margin-bottom:4px}
+    #dlgGasCalc input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:8px}
+  `;
+
+  document.head.appendChild(style);
+  document.body.appendChild(dlg);
 
   return dlg;
 }
@@ -808,6 +870,82 @@ function abrirSelectorImportacionJSON() {
   input.click();
 }
 
+function parseNumInput(raw) {
+  if (raw === null || raw === undefined) return null;
+  const n = Number(String(raw).replace(",", ".").trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+async function openGasCalcDialog(timestamp, arterialValue = "") {
+  if (!state.rut || !timestamp) return;
+
+  const dlg = getGasCalcDialog();
+  const sub = dlg.querySelector("#dlgGasCalcSub");
+  const inputFiO2 = dlg.querySelector("#gasFiO2");
+  const inputMap = dlg.querySelector("#gasMap");
+  const btnGuardar = dlg.querySelector("#btnGasCalcGuardar");
+  const btnBorrar = dlg.querySelector("#btnGasCalcBorrar");
+
+  const previo = await obtenerCalculoGasometrico(state.rut, timestamp);
+
+  btnBorrar.disabled = !previo;
+  btnBorrar.title = previo ? "" : "No hay cálculo guardado en esta muestra.";
+
+  sub.textContent = `Fecha: ${timestamp}${arterialValue ? ` · PaO2 arterial: ${arterialValue}` : ""}`;
+  inputFiO2.value = previo?.fio2 ?? "";
+  inputMap.value = previo?.map ?? "";
+
+  btnGuardar.onclick = async () => {
+    const fio2 = parseNumInput(inputFiO2.value);
+    const map = parseNumInput(inputMap.value);
+
+    if (!(fio2 > 0)) {
+      setEstado("FiO2 inválida. Debe ser mayor a 0.", true);
+      return;
+    }
+
+    if (!(map > 0)) {
+      setEstado("PAM de vía aérea inválida. Debe ser mayor a 0.", true);
+      return;
+    }
+
+    try {
+      await guardarCalculoGasometrico(state.rut, timestamp, { fio2, map });
+      dlg.close();
+      await cargarPaciente(state.rut);
+      setEstado("Cálculo gasométrico actualizado.");
+    } catch (e) {
+      console.error(e);
+      setEstado(`Error guardando cálculo: ${e?.message || e}`, true);
+    }
+  };
+
+  btnBorrar.onclick = async () => {
+    try {
+      const previo = await obtenerCalculoGasometrico(state.rut, timestamp);
+
+      if (!previo) {
+        dlg.close();
+        setEstado("No había cálculo guardado para borrar.");
+        return;
+      }
+
+      const ok = window.confirm("¿Borrar cálculo gasométrico de esta muestra?");
+      if (!ok) return;
+
+      await limpiarCalculoGasometrico(state.rut, timestamp);
+      dlg.close();
+      await cargarPaciente(state.rut);
+      setEstado("Cálculo gasométrico borrado.");
+    } catch (e) {
+      console.error(e);
+      setEstado(`Error borrando cálculo: ${e?.message || e}`, true);
+    }
+  };
+
+  if (!dlg.open) dlg.showModal();
+}
+
 function parseRutFromUrl() {
   const params = new URLSearchParams(location.search);
   return params.get("rut");
@@ -1020,6 +1158,23 @@ function ensureInlineBtnStyle() {
     font-weight:500;
     font-variant-numeric: tabular-nums;
   }
+  
+    .btn-gas-calc{
+    margin-left:6px;
+    padding:1px 6px;
+    border:1px solid #cfcfcf;
+    border-radius:8px;
+    background:#fff;
+    font-size:10px;
+    line-height:1.2;
+    color:#666;
+    cursor:pointer;
+  }
+
+  .btn-gas-calc:hover{
+    border-color:#999;
+    color:#222;
+  }
 `;
   document.head.appendChild(st);
 }
@@ -1111,26 +1266,67 @@ function construirTablaHTML(matriz) {
               </td>`;
             }
 
-          if (typeof v === "object" && v !== null) {
+                      if (typeof v === "object" && v !== null) {
             const a = String(v.arterial ?? "").trim();
             const ve = String(v.venoso ?? "").trim();
 
-            const aHtml = a
-  ? `<div class="gas-result gas-a"><span class="gas-val">${escapeHtml(a)}</span><span class="badge-gas badge-a">A</span></div>`
-  : "";
+            const puedeCalcular = examen === "pO2" && a;
+            const calcBtn = puedeCalcular
+              ? `<button
+                   class="btn-gas-calc"
+                   data-action="gascalc"
+                   data-ts="${escapeHtml(c.timestamp)}"
+                   data-pao2="${escapeHtml(a)}"
+                   title="Ingresar FiO2 y PAM VA"
+                 >Calc</button>`
+              : "";
 
-const vHtml = ve
-  ? `<div class="gas-result gas-v"><span class="gas-val">${escapeHtml(ve)}</span><span class="badge-gas badge-v">V</span></div>`
-  : "";
+            const aHtml = a
+              ? `<div class="gas-result gas-a">
+                   <span class="gas-val">${escapeHtml(a)}</span>
+                   <span class="badge-gas badge-a">A</span>
+                   ${calcBtn}
+                 </div>`
+              : "";
+
+            const vHtml = ve
+              ? `<div class="gas-result gas-v">
+                   <span class="gas-val">${escapeHtml(ve)}</span>
+                   <span class="badge-gas badge-v">V</span>
+                 </div>`
+              : "";
 
             const gasCls = (!a && !ve) ? "empty" : "";
             return `<td class="${gasCls}" data-col="${idx}"><div class="gas-stack">${aHtml}${vHtml}</div></td>`;
-            }
+          }
+
+//           if (typeof v === "object" && v !== null) {
+//             const a = String(v.arterial ?? "").trim();
+//             const ve = String(v.venoso ?? "").trim();
+
+//             const aHtml = a
+//   ? `<div class="gas-result gas-a"><span class="gas-val">${escapeHtml(a)}</span><span class="badge-gas badge-a">A</span></div>`
+//   : "";
+
+// const vHtml = ve
+//   ? `<div class="gas-result gas-v"><span class="gas-val">${escapeHtml(ve)}</span><span class="badge-gas badge-v">V</span></div>`
+//   : "";
+
+//             const gasCls = (!a && !ve) ? "empty" : "";
+//             return `<td class="${gasCls}" data-col="${idx}"><div class="gas-stack">${aHtml}${vHtml}</div></td>`;
+//             }
 
           if (!txt) cls = "empty";
           else if (!Number.isNaN(Number(txt.replace(",", ".")))) cls = "num";
+          
+          const isCalcDestacado = examen === "PAFI" || examen === "IOX";
 
-          return `<td class="${cls}" data-col="${idx}">${escapeHtml(txt)}</td>`;
+          const contenido = isCalcDestacado && v
+            ? `<span class="calc-highlight">${escapeHtml(txt)}</span>`
+            : escapeHtml(txt);
+
+          return `<td class="${cls}" data-col="${idx}">${contenido}</td>`;
+
         })
         .join("");
 
@@ -1204,6 +1400,12 @@ function decorarTablaRenderizada(wrap, matriz, interactive = true) {
 
     const action = btn.getAttribute("data-action");
     const ts = btn.getAttribute("data-ts");
+
+    if (action === "gascalc") {
+      const pao2 = btn.getAttribute("data-pao2") || "";
+      openGasCalcDialog(ts, pao2);
+      return;
+    }
 
     if (action === "orina") {
       openOrinaModal(ts);

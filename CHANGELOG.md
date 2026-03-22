@@ -8,6 +8,36 @@ This format follows the *Keep a Changelog* style with approximate semantic versi
 
 ---
 
+## [1.6.1] - 2026-03-22
+
+### Added
+- Integrated clinical calculations for arterial blood gases:
+  - PaO2/FiO2 ratio (PAFI)
+  - Oxygenation Index (IOX)
+- Interface for manual input of FiO2 and mean airway pressure (PMVA) per sample
+- Persistence of gasometric calculations by timestamp
+- Button to delete individual gasometric calculations
+- Visual highlighting of PAFI and IOX in the clinical matrix
+
+### Changed
+- Visualization simplification:
+  - Intermediate rows (FiO2 and PMVA) are hidden
+  - Only clinically relevant results are displayed (PAFI, IOX)
+- Improved cell rendering consistency (removal of `undefined` values)
+- Refactor of `matrix.js` to separate calculation logic from persistence
+
+### Fixed
+- Viewer initialization error due to undefined functions
+- Rendering issues when applying formatting to calculation cells
+- Duplication of gasometric calculation functions in `storage.js`
+- Inconsistencies when updating existing calculations
+
+### Technical
+- Introduction of a persistent clinical calculation model in `storage.js`
+- Structure prepared for future clinical rules (semantic highlighting)
+
+---
+
 ## [1.6.0] - 2026-03-20
 
 ### Added

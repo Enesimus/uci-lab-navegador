@@ -120,46 +120,6 @@ async function guardarStorageMeta(meta = {}) {
 }
 
 // =========================
-// Cálculos clínicos
-// =========================
-
-async function guardarCalculoGasometrico(rut, timestamp, payload = {}) {
-  const data = await obtener(rut);
-  if (!data) throw new Error("Paciente no encontrado.");
-  if (!timestamp || !String(timestamp).trim()) {
-    throw new Error("Timestamp inválido.");
-  }
-
-  const fio2 = Number(payload?.fio2);
-  const map = Number(payload?.map);
-
-  if (!Number.isFinite(fio2) || fio2 <= 0) {
-    throw new Error("FiO2 inválida.");
-  }
-
-  if (!Number.isFinite(map) || map <= 0) {
-    throw new Error("PAM de vía aérea inválida.");
-  }
-
-  data.calculos = data.calculos || {};
-  data.calculos.gasometria = data.calculos.gasometria || {};
-
-  data.calculos.gasometria[String(timestamp).trim()] = {
-    fio2,
-    map,
-    updatedAt: new Date().toISOString()
-  };
-
-  await guardar(rut, data);
-  return data.calculos.gasometria[String(timestamp).trim()];
-}
-
-async function obtenerCalculosGasometricos(rut) {
-  const data = await obtener(rut);
-  return data?.calculos?.gasometria || {};
-}
-
-// =========================
 // Backup global
 // =========================
 
@@ -320,4 +280,88 @@ async function restaurarBackupAutomaticoSiCorresponde() {
     totalPacientes: total,
     rutActual: backup.rutActual || null
   };
+}
+
+// =========================
+// Cálculos clínicos - gasometría arterial
+// =========================
+
+function normalizarNumeroClinico(valor) {
+  if (valor === null || valor === undefined) return null;
+
+  const n = Number(String(valor).replace(",", ".").trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+async function guardarCalculoGasometrico(rut, timestamp, payload = {}) {
+  const data = await obtener(rut);
+
+  if (!data) {
+    throw new Error("Paciente no encontrado.");
+  }
+
+  const ts = String(timestamp || "").trim();
+  if (!ts) {
+    throw new Error("Timestamp inválido.");
+  }
+
+  const fio2 = normalizarNumeroClinico(payload.fio2);
+  const map = normalizarNumeroClinico(payload.map);
+
+  if (!(fio2 > 0)) {
+    throw new Error("FiO2 inválida. Debe ser mayor a 0.");
+  }
+
+  if (!(map > 0)) {
+    throw new Error("PAM de vía aérea inválida. Debe ser mayor a 0.");
+  }
+
+  data.calculos = data.calculos || {};
+  data.calculos.gasometria = data.calculos.gasometria || {};
+
+  data.calculos.gasometria[ts] = {
+    fio2,
+    map,
+    updatedAt: new Date().toISOString()
+  };
+
+  await guardar(rut, data);
+
+  return data.calculos.gasometria[ts];
+}
+
+async function obtenerCalculosGasometricos(rut) {
+  const data = await obtener(rut);
+  return data?.calculos?.gasometria || {};
+}
+
+async function obtenerCalculoGasometrico(rut, timestamp) {
+  const ts = String(timestamp || "").trim();
+  if (!ts) return null;
+
+  const calculos = await obtenerCalculosGasometricos(rut);
+  return calculos[ts] || null;
+}
+
+async function limpiarCalculoGasometrico(rut, timestamp) {
+  const data = await obtener(rut);
+  if (!data) return false;
+
+  const ts = String(timestamp || "").trim();
+  if (!ts) return false;
+
+  if (!data.calculos?.gasometria?.[ts]) return false;
+
+  delete data.calculos.gasometria[ts];
+
+  if (!Object.keys(data.calculos.gasometria).length) {
+    delete data.calculos.gasometria;
+  }
+
+  if (data.calculos && !Object.keys(data.calculos).length) {
+    delete data.calculos;
+  }
+
+  await guardar(rut, data);
+  return true;
 }
