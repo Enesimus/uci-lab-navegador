@@ -38,21 +38,28 @@ body {
   padding: 6px 8px;
 }
 
-.group.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  flex-direction: row;
-  align-items: center;
+button,
+#selPaciente,
+.filters {
+  cursor: pointer;
 }
 
-.group.actions button {
-  border-radius: 10px;
+#btnResumenInfeccioso,
+#btnImprimir,
+#btnActualizar,
+#btnAyudaViewer {
+  font-weight: 730;
+}
+
+#btnResumenInfeccioso,
+#btnImprimir,
+#btnActualizar {
+  background-color: khaki;
 }
 
 #btnExportarJSON,
 #btnImportarJSON {
-  font-weight: 600;
+  font-weight: 300;
 }
 .row { 
   display: flex; 
@@ -119,11 +126,11 @@ body {
 }
 .badge-gas {
   display: inline-block;
-  margin-left: 6px;
+  margin-left: 4px;
   padding: 1px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 700;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 600;
   line-height: 1.2;
   vertical-align: middle;
 }
@@ -326,6 +333,92 @@ td.empty {
 .micro-table th:nth-child(2),
 .micro-table td:nth-child(2) {
   width: 280px;
+}
+
+.help-viewer-body {
+  font-size: 13px;
+}
+
+.topbar-layout {
+  display: grid;
+  grid-template-columns: minmax(600px, 650px) minmax(300px, 1fr);
+  gap: 25px;
+  align-items: start;
+}
+
+.topbar-left {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.topbar-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: start;
+}
+
+.actions-panel.compact-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(860px, 100%);
+}
+
+.actions-panel.compact-actions .actions-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.actions-panel.compact-actions .actions-row button {
+  width: 85%;
+  min-height: 28px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.actions-panel.compact-actions .actions-row .danger {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .topbar-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-right {
+    justify-content: stretch;
+  }
+
+  .actions-panel.compact-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .actions-panel.compact-actions .actions-row {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+.btn-help {
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+.btn-help:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.help-viewer-body {
+  font-size: 13px;
 }
 
 @media print {

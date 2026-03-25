@@ -10,6 +10,8 @@ Licensed under the GNU General Public License v3.0
 
 const $ = (id) => document.getElementById(id);
 
+const btnAyudaViewer = $("btnAyudaViewer");
+
 const state = {
   rut: null,
   data: null,
@@ -245,6 +247,177 @@ function getDialog() {
     });
 
   return dlg;
+}
+
+function getHelpDialog() {
+  let dlg = document.getElementById("dlgHelpViewer");
+  if (dlg) return dlg;
+
+  dlg = document.createElement("dialog");
+  dlg.id = "dlgHelpViewer";
+  dlg.innerHTML = `
+    <form method="dialog" class="dlg-form">
+      <div class="dlg-head">
+        <div>
+          <div class="dlg-title">Ayuda rápida</div>
+          <div class="dlg-sub">Uso básico del visualizador clínico</div>
+        </div>
+        <button value="cancel" class="dlg-close" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="dlg-body help-viewer-body">
+        <section class="help-block">
+          <h4>Flujo recomendado</h4>
+          <ol>
+            <li>Seleccione un paciente desde la lista o escriba el RUT y presione <strong>Cargar</strong>.</li>
+            <li>Revise la matriz clínica longitudinal en la tabla principal.</li>
+            <li>Use <strong>Buscar examen</strong> y los filtros para simplificar la visualización.</li>
+            <li>Use <strong>Resumen infeccioso</strong>, impresión o exportación según necesidad.</li>
+          </ol>
+        </section>
+
+        <section class="help-block">
+          <h4>Acciones principales</h4>
+          <ul>
+            <li><strong>Actualizar:</strong> recarga los datos del paciente actual desde el almacenamiento local.</li>
+            <li><strong>Resumen infeccioso:</strong> abre una vista resumida de cultivos y estudios microbiológicos relevantes.</li>
+            <li><strong>Imprimir:</strong> prepara la matriz para impresión clínica.</li>
+            <li><strong>Exportar JSON:</strong> guarda el registro completo del paciente actual.</li>
+            <li><strong>Importar JSON:</strong> reconstruye un paciente desde un archivo exportado previamente.</li>
+            <li><strong>Exportar CSV:</strong> genera una matriz tabular para revisión o análisis externo.</li>
+            <li><strong>Borrar:</strong> elimina el paciente actual del almacenamiento local.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h4>Filtros</h4>
+          <ul>
+            <li><strong>Buscar examen:</strong> filtra filas por nombre.</li>
+            <li><strong>Ocultar vacíos:</strong> muestra solo exámenes con contenido visible.</li>
+            <li><strong>Mostrar extras:</strong> incluye o excluye exámenes secundarios según necesidad.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h4>Exámenes especiales</h4>
+          <ul>
+            <li>Algunos estudios se muestran como detalle expandible o en ventana de apoyo, por ejemplo cultivos, paneles moleculares, orina completa, fórmula manual y otros paneles complejos.</li>
+            <li>Cuando una celda muestra un botón de detalle, presiónelo para ver el contenido completo.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h4>Cálculo gasométrico</h4>
+          <ul>
+            <li>En gases arteriales puede aparecer la opción de cálculo manual.</li>
+            <li>Ingrese <strong>FiO2</strong> y <strong>PMVA</strong> para calcular <strong>PAFI</strong> e <strong>IOX</strong>.</li>
+            <li>Los cálculos quedan guardados por timestamp y se destacan en la matriz.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h4>Problemas frecuentes</h4>
+          <ul>
+            <li>Si un paciente no aparece, confirme que tenga al menos una orden previamente extraída en la extensión.</li>
+            <li>Si faltan datos en la tabla, revise filtros activos o vuelva a cargar el paciente.</li>
+            <li>Use exportación JSON para respaldar un paciente y respaldo global desde el popup para proteger todo el registro local.</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="dlg-foot">
+        <button value="cancel">Cerrar</button>
+      </div>
+    </form>
+  `;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    dialog#dlgHelpViewer{
+      max-width:min(860px,96vw);
+      width:min(860px,96vw);
+      border:1px solid #ccc;
+      border-radius:12px;
+      padding:0;
+    }
+    dialog#dlgHelpViewer::backdrop{
+      background:rgba(0,0,0,.25);
+    }
+    #dlgHelpViewer .dlg-form{
+      margin:0;
+    }
+    #dlgHelpViewer .dlg-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border-bottom:1px solid #ddd;
+    }
+    #dlgHelpViewer .dlg-title{
+      font-weight:700;
+      font-size:16px;
+    }
+    #dlgHelpViewer .dlg-sub{
+      opacity:.8;
+      font-size:12px;
+      margin-top:2px;
+    }
+    #dlgHelpViewer .dlg-close{
+      border:0;
+      background:transparent;
+      font-size:16px;
+      cursor:pointer;
+      padding:4px 6px;
+    }
+    #dlgHelpViewer .dlg-body{
+      padding:12px 14px;
+      max-height:min(72vh,700px);
+      overflow:auto;
+    }
+    #dlgHelpViewer .dlg-foot{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      padding:10px 14px;
+      border-top:1px solid #eee;
+    }
+    #dlgHelpViewer .help-block + .help-block{
+      margin-top:14px;
+      padding-top:12px;
+      border-top:1px solid #eee;
+    }
+    #dlgHelpViewer .help-block h4{
+      margin:0 0 8px 0;
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      opacity:.9;
+    }
+    #dlgHelpViewer ol,
+    #dlgHelpViewer ul{
+      margin:0;
+      padding-left:18px;
+      font-size:13px;
+      line-height:1.45;
+    }
+    #dlgHelpViewer li + li{
+      margin-top:6px;
+    }
+  `;
+
+  document.head.appendChild(style);
+  document.body.appendChild(dlg);
+  return dlg;
+}
+
+function openHelpDialog() {
+  const dlg = getHelpDialog();
+  if (typeof dlg.showModal === "function") {
+    dlg.showModal();
+  } else {
+    dlg.setAttribute("open", "open");
+  }
 }
 
 function getGasCalcDialog() {
@@ -1857,6 +2030,8 @@ $("fileImportarJSON").addEventListener("change", async (e) => {
   $("btnImprimir").addEventListener("click", () => {
     imprimirVistaPaginada();
   });
+
+  btnAyudaViewer?.addEventListener("click", openHelpDialog);
 
   $("btnBorrar").addEventListener("click", async () => {
     if (!state.rut) return;

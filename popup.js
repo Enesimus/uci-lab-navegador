@@ -24,6 +24,11 @@ const btnExportarBackupGlobal = $("btnExportarBackupGlobal");
 const btnImportarBackupGlobal = $("btnImportarBackupGlobal");
 const fileImportBackupGlobal = $("fileImportBackupGlobal");
 const btnVer = $("btnVer");
+const btnAyuda = $("btnAyuda");
+const helpModal = $("helpModal");
+const helpBackdrop = $("helpBackdrop");
+const btnCerrarAyuda = $("btnCerrarAyuda");
+
 
 function setBusy(isBusy) {
   if (btnExtraer) btnExtraer.disabled = isBusy;
@@ -78,6 +83,20 @@ function showStatus(message, kind = "success", ms = 3000) {
       elStatus.classList.remove("success", "error", "warn");
     }, ms);
   }
+}
+
+function abrirAyuda() {
+  if (!helpModal) return;
+  helpModal.classList.remove("hidden");
+  helpModal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function cerrarAyuda() {
+  if (!helpModal) return;
+  helpModal.classList.add("hidden");
+  helpModal.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
 }
 
 function renderPacienteVacio() {
@@ -441,4 +460,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!file) return;
     await importarBackupGlobalDesdeArchivo(file);
   });
+
+  btnAyuda?.addEventListener("click", () => {
+    abrirAyuda();
+  });
+
+  btnCerrarAyuda?.addEventListener("click", () => {
+    cerrarAyuda();
+  });
+
+  helpBackdrop?.addEventListener("click", () => {
+    cerrarAyuda();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && helpModal && !helpModal.classList.contains("hidden")) {
+      cerrarAyuda();
+    }
+  });
+
 });

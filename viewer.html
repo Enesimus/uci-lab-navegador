@@ -12,32 +12,42 @@
     <div class="viewer-title">
       UCI Lab Navegador – Visualizador Clínico
     </div>
-    <div class="row">
-      <div class="group">
-        <label>Paciente</label>
-        <select id="selPaciente"></select>
-      </div>
 
-      <div class="group">
-        <label>RUT</label>
-        <input id="txtRut" placeholder="11222333-K" />
-        <button id="btnCargar">Cargar</button>
-      </div>
-
-      <div class="spacer"></div>
-
-<div class="group actions">
-  <button id="btnActualizar">Actualizar</button>
-  <button id="btnResumenInfeccioso">Resumen infeccioso</button>
-  <button id="btnExportarJSON">Exportar JSON</button>
-  <button id="btnImportarJSON">Importar JSON</button>
-  <button id="btnExportarCSV">Exportar CSV</button>
-  <button id="btnImprimir">Imprimir</button>
-  <button id="btnBorrar" class="danger">Borrar</button>
-  <input id="fileImportarJSON" type="file" accept=".json,application/json" hidden />
-</div>
+<div class="topbar-layout">
+  <div class="topbar-left">
+    <div class="group">
+      <label>Paciente</label>
+      <select id="selPaciente"></select>
     </div>
 
+    <div class="group">
+      <label>RUT</label>
+      <input id="txtRut" placeholder="11222333-K" />
+      <button id="btnCargar">Cargar</button>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <div class="actions-panel compact-actions">
+      <div class="actions-row">
+        <button id="btnActualizar">Actualizar</button>
+        <button id="btnResumenInfeccioso">Resumen infeccioso</button>
+        <button id="btnImprimir">Imprimir</button>
+        <button id="btnAyudaViewer" class="btn-help">Ayuda</button>
+      </div>
+
+      <div class="actions-row">
+        <button id="btnExportarJSON">Exportar JSON</button>
+        <button id="btnImportarJSON">Importar JSON</button>
+        <button id="btnExportarCSV">Exportar CSV</button>
+        <button id="btnBorrar" class="danger">Borrar</button>
+      </div>
+
+      <input id="fileImportarJSON" type="file" accept=".json,application/json" hidden />
+    </div>
+  </div>
+</div>
+    
     <div class="row info" id="infoPaciente"></div>
 
     <details class="filters">
