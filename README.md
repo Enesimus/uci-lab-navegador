@@ -76,11 +76,7 @@ Extensión Chrome (Manifest V3).
 
 ```chrome.storage.local```
 
-<<<<<<< HEAD
 Persistencia por paciente (UCI_\<rut>)
-=======
-Persistence per patient: (UCI_\<rut>)
->>>>>>> dev
 
 ### 3.3 Modelo de datos
 
@@ -213,7 +209,6 @@ Version: 1.5.0
 
 Estado: versión estable con:
 
-<<<<<<< HEAD
 - visualización longitudinal de exámenes
 - soporte para cultivos y estudios especiales
 - resumen infeccioso
@@ -228,7 +223,6 @@ Estado: versión estable con:
 - improved print behavior for paginated output
 - grouped visualization for special studies such as ANA and Rapid Clostridium difficile Test
 - updated viewer toolbar with direct JSON export/import actions
->>>>>>> dev
 
 ---
 
